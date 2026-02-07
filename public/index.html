@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Stacklogic</title>
+    <meta name="description" content="Stacklogic, a falling block game." />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <div class="hud desktop-only">
+        <h1>Stacklogic</h1>
+        <div class="row"><span>Score</span><span id="score">0</span></div>
+        <div class="row"><span>Lines</span><span id="lines">0</span></div>
+        <div class="row"><span>Level</span><span id="level">1</span></div>
+
+        <button id="pauseBtn" class="btn" type="button">Pause</button>
+
+        <p class="help">
+          Controls:<br />
+          Left/Right: Move<br />
+          Down: Soft drop<br />
+          Up or X: Rotate right<br />
+          Z: Rotate left<br />
+          Space: Hard drop<br />
+          P: Pause<br />
+          R: Return to home
+        </p>
+        <div id="status" class="status"></div>
+      </div>
+
+      <div class="stage">
+        <div id="portraitHeader" class="portrait-header">
+          <div class="portrait-left">
+            <div class="logo">Stacklogic</div>
+            <button id="portraitPauseBtn" class="pbtn" type="button">Pause</button>
+            <button id="portraitRestartBtn" class="pbtn" type="button">Restart</button>
+          </div>
+          <div class="portrait-right">
+            <div class="mini"><span>Score</span> <span id="scoreP">0</span></div>
+            <div class="mini"><span>Lvl</span> <span id="levelP">1</span></div>
+          </div>
+        </div>
+
+        <canvas id="game" width="300" height="600"></canvas>
+
+        <div id="title" class="overlay">
+          <div class="card">
+            <h2 class="title">Stacklogic</h2>
+
+            <div class="intro-wrap" aria-hidden="true">
+              <img
+                class="intro-gif"
+                src="/assets/stacklogic-intro.gif"
+                alt="Stacklogic animation"
+              />
+            </div>
+
+            <button id="startBtn" class="btn primary" type="button">Start</button>
+
+            <h3 class="subhead">High scores</h3>
+            <ol id="highScores" class="scores"></ol>
+
+            <p class="hint">Audio starts after Start.</p>
+          </div>
+        </div>
+
+        <div id="gameOver" class="overlay">
+          <div class="card">
+            <h2 class="title">Game Over</h2>
+            <p class="hint" id="gameOverText">Your game has ended.</p>
+            <button id="goHomeBtn" class="btn primary" type="button">Home</button>
+          </div>
+        </div>
+
+        <div class="mobile-controls" id="mobileControls">
+          <div class="pad left">
+            <button id="btnLeft" class="btn" type="button">Left</button>
+            <button id="btnRight" class="btn" type="button">Right</button>
+          </div>
+          <div class="pad right">
+            <button id="btnRotL" class="btn" type="button">Rot L</button>
+            <button id="btnRotR" class="btn" type="button">Rot R</button>
+            <button id="btnDrop" class="btn" type="button">Drop</button>
+          </div>
+        </div>
+
+        <div class="mobile-status" id="statusMobile"></div>
+      </div>
+    </main>
+
+    <script type="module" src="game.js"></script>
+  </body>
+</html>
