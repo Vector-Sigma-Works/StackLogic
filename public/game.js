@@ -277,7 +277,7 @@ let lastTime;
 
 let state; // 'home' | 'playing' | 'paused' | 'gameover'
 
-const music = new Audio('/assets/stacklogic.mp3');
+const music = new Audio('assets/stacklogic.mp3');
 music.loop = true;
 
 function startMusic() {
