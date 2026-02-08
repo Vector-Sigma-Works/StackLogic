@@ -33,3 +33,7 @@ Current release line: **v0.x beta**.
 ## Notes
 
 This repo is intentionally lightweight and easy to run.
+
+## Backlog / Roadmap Notes
+
+- See `BACKLOG.md` for parked roadmap items, review follow-ups, and handoff notes for future backlog processing.
