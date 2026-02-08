@@ -13,6 +13,8 @@ const HIGHSCORE_MAX = 10;
 const LOCAL_FALLBACK_KEY = 'stacklogic_highscores_fallback_v1';
 const NAME_MAX_LEN = 16;
 
+const NEXT_PREVIEW_KEY = 'stacklogic_preview_next_v1';
+
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
@@ -43,6 +45,8 @@ const btnRotL = document.getElementById('btnRotL');
 const btnRotR = document.getElementById('btnRotR');
 const btnDrop = document.getElementById('btnDrop');
 const mobileControls = document.getElementById('mobileControls');
+
+const previewCheckbox = document.getElementById('previewNext');
 
 const COLORS = {
   I: '#67e8f9',
@@ -246,6 +250,7 @@ let level;
 let dropInterval;
 let dropCounter;
 let lastTime;
+let nextType = null;
 
 let state; // 'home' | 'playing' | 'paused' | 'gameover'
 
@@ -342,7 +347,10 @@ function clearLines() {
 }
 
 function spawn() {
-  piece = newPiece(nextFromBag());
+  // Use prefetched nextType so we can preview it
+  if (!nextType) nextType = nextFromBag();
+  piece = newPiece(nextType);
+  nextType = nextFromBag();
   if (collide(board, piece)) {
     triggerGameOver('No space to spawn');
   }
@@ -357,6 +365,7 @@ function resetGameState() {
   dropInterval = computeDropInterval(level);
   dropCounter = 0;
   lastTime = 0;
+  nextType = null;
   setStatus('');
   spawn();
   updateHUD();
@@ -397,6 +406,46 @@ function draw() {
         if (by >= 0) drawCell(bx, by, COLORS[type]);
       }
     }
+  }
+
+  // Draw preview if enabled
+  const previewEnabled = (function() {
+    try {
+      const v = localStorage.getItem(NEXT_PREVIEW_KEY);
+      if (v === null) return true; // default on
+      return v === '1' || v === 'true';
+    } catch {
+      return true;
+    }
+  })();
+
+  if (previewEnabled && nextType) {
+    // Render preview in the top-right of the canvas (inside bounds)
+    const shape = SHAPES[nextType];
+    const small = Math.floor(CELL * 0.7);
+    const padding = 8;
+    // compute pixel base so preview sits inside canvas on the right
+    const previewWidth = Math.max(...shape.map((r) => r.length)) * small;
+    const previewHeight = shape.length * small;
+    const basePx = canvas.width - previewWidth - padding;
+    const basePy = padding;
+
+    for (let y = 0; y < shape.length; y++) {
+      for (let x = 0; x < shape[y].length; x++) {
+        if (!shape[y][x]) continue;
+        const px = basePx + x * small;
+        const py = basePy + y * small;
+        ctx.fillStyle = COLORS[nextType];
+        ctx.fillRect(px, py, small, small);
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.strokeRect(px + 0.5, py + 0.5, small - 1, small - 1);
+      }
+    }
+
+    // Draw label above preview
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('Next', basePx, basePy - 6);
   }
 }
 
@@ -597,6 +646,44 @@ goHomeBtn.addEventListener('click', () => {
 startBtn.addEventListener('click', () => {
   startGame();
 });
+
+if (previewCheckbox) {
+  // Initialize checkbox state from localStorage
+  try {
+    const v = localStorage.getItem(NEXT_PREVIEW_KEY);
+    if (v === null) previewCheckbox.checked = true;
+    else previewCheckbox.checked = (v === '1' || v === 'true');
+  } catch {
+    previewCheckbox.checked = true;
+  }
+
+  previewCheckbox.addEventListener('change', (e) => {
+    try {
+      localStorage.setItem(NEXT_PREVIEW_KEY, previewCheckbox.checked ? '1' : '0');
+    } catch {}
+  });
+}
+
+// Prevent iOS double-tap zoom on fast consecutive taps for controls
+(function() {
+  let lastTouch = 0;
+  const THRESH = 300; // ms
+  function onTouchStart(e) {
+    try {
+      const now = Date.now();
+      if (now - lastTouch < THRESH) {
+        // Too-fast second tap: prevent default to stop double-tap zoom
+        e.preventDefault();
+      }
+      lastTouch = now;
+    } catch (err) {
+      // ignore
+    }
+  }
+  const selector = '#mobileControls, .btn, .pbtn, #startBtn, #goHomeBtn, #portraitRestartBtn, #btnLeft, #btnRight, #btnRotL, #btnRotR, #btnDrop';
+  const els = document.querySelectorAll(selector);
+  els.forEach((el) => el.addEventListener('touchstart', onTouchStart, { passive: false }));
+})();
 
 function bindHoldButton(btn, onPressOnce, { repeatMs = 0 } = {}) {
   let interval = null;
