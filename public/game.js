@@ -165,47 +165,19 @@ function saveFallbackScores(list) {
 }
 
 async function fetchHighScores() {
-  try {
-    const res = await fetch('/api/highscores', { cache: 'no-store' });
-    if (!res.ok) throw new Error('bad response');
-    const data = await res.json();
-    const scores = Array.isArray(data?.scores) ? data.scores : [];
-    const normalized = scores
-      .filter((x) => x && typeof x.score === 'number' && typeof x.name === 'string')
-      .map((x) => ({ name: safeText(x.name).slice(0, NAME_MAX_LEN), score: Math.floor(x.score), ts: Number(x.ts) || Date.now() }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, HIGHSCORE_MAX);
-    saveFallbackScores(normalized);
-    return normalized;
-  } catch {
-    return loadFallbackScores();
-  }
+  // GitHub Pages is static hosting; keep scores per-device (no backend).
+  return loadFallbackScores();
 }
 
 async function submitHighScore(name, score) {
-  try {
-    const res = await fetch('/api/highscores', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, score })
-    });
-    if (!res.ok) throw new Error('bad response');
-    const data = await res.json();
-    const scores = Array.isArray(data?.scores) ? data.scores : [];
-    const normalized = scores
-      .filter((x) => x && typeof x.score === 'number' && typeof x.name === 'string')
-      .map((x) => ({ name: safeText(x.name).slice(0, NAME_MAX_LEN), score: Math.floor(x.score), ts: Number(x.ts) || Date.now() }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, HIGHSCORE_MAX);
-    saveFallbackScores(normalized);
-    return { saved: Boolean(data?.saved), scores: normalized };
-  } catch {
-    // Fallback local only
-    const list = loadFallbackScores();
-    const next = list.concat([{ name: clampName(name), score: Math.floor(score), ts: Date.now() }]).sort((a, b) => b.score - a.score).slice(0, HIGHSCORE_MAX);
-    saveFallbackScores(next);
-    return { saved: true, scores: next };
-  }
+  // Local-only leaderboard (per device/browser)
+  const list = loadFallbackScores();
+  const next = list
+    .concat([{ name: clampName(name), score: Math.floor(score), ts: Date.now() }])
+    .sort((a, b) => b.score - a.score)
+    .slice(0, HIGHSCORE_MAX);
+  saveFallbackScores(next);
+  return { saved: true, scores: next };
 }
 
 function qualifiesForHighScore(list, score) {
