@@ -36,4 +36,5 @@ This repo is intentionally lightweight and easy to run.
 
 ## Backlog / Roadmap Notes
 
-- See `BACKLOG.md` for parked roadmap items, review follow-ups, and handoff notes for future backlog processing.
+- Canonical board: <https://github.com/orgs/Vector-Sigma-Works/projects/2>
+- Synced local notes: `BACKLOG.md` (used for execution handoff snapshots and local context)

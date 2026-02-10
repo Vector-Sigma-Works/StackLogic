@@ -1,9 +1,28 @@
 # StackLogic Backlog Notes
 
-Owner (future): Prime (agent)
-Status: Parked for roadmap
+Owner: Prime (agent)
+Source of truth: Autobot Command Project board (`Vector-Sigma-Works` Project #2)
+Last sync: 2026-02-10 (from Prime live board snapshot)
 
-## From Codex review (main..staging)
+## Board snapshot (synced)
+
+### Ready
+- F: StackLogic Gameplay Progression Pack (#12)
+- S: Gameplay Ramp - Levels and Speed Curves (#13)
+- F: StackLogic Architecture Hardening (#18)
+
+### Backlog
+- E: StackLogic Game Evolution v0.1 (#11)
+- S: Control Flow Parity - Pause, Resume, Restart (#14)
+- F: StackLogic Competitive Scoring Foundation (#15)
+- S: Scoring Model Normalization (#16)
+- S: Seeded Challenge Mode (#17)
+
+### Unassigned / needs status field set
+- S: Module Split Refactor (input/state/render) (#19)
+- S: Regression Checklist Script for Core Flows (#20)
+
+## Parked quality follow-ups (from prior Codex review)
 
 ### Should
 1. **Perf / maintainability** (`public/game.js`)
