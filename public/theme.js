@@ -100,6 +100,9 @@
       vars.push([key, value]);
     }
     root.document.documentElement.setAttribute('data-theme', name);
+    if (typeof root.CustomEvent === 'function' && typeof root.document.dispatchEvent === 'function') {
+      root.document.dispatchEvent(new root.CustomEvent('themechange', { detail: { theme: name } }));
+    }
     return vars;
   }
 
