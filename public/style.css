@@ -6,6 +6,46 @@
   --border: #283244;
 }
 
+/* Theme: Default */
+[data-theme="Default"] {
+  --bg: #0b0f14;
+  --fg: #e6edf3;
+  --muted: #9aa4af;
+  --panel: #0f1624;
+  --border: #283244;
+  --accent: #1d4ed8;
+}
+
+/* Theme: Matrix */
+[data-theme="Matrix"] {
+  --bg: #0a0a0a;
+  --fg: #00ff41;
+  --muted: #008f11;
+  --panel: #0d1a0d;
+  --border: #003b00;
+  --accent: #00ff41;
+}
+
+/* Theme: CandyPop */
+[data-theme="CandyPop"] {
+  --bg: #1a0a2e;
+  --fg: #ffb6c1;
+  --muted: #c77dba;
+  --panel: #2d1b4e;
+  --border: #4a2c7a;
+  --accent: #ff69b4;
+}
+
+/* Theme: Dark */
+[data-theme="Dark"] {
+  --bg: #000000;
+  --fg: #ffffff;
+  --muted: #888888;
+  --panel: #111111;
+  --border: #333333;
+  --accent: #555555;
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -42,7 +82,7 @@ body {
 
 canvas#game {
   display: block;
-  background: #111826;
+  background: var(--bg);
   border: 1px solid var(--border);
   width: 300px;
   height: 600px;
@@ -91,6 +131,24 @@ canvas#game {
   border-color: #1d4ed8;
 }
 
+[data-theme="Matrix"] .btn.primary {
+  background: #00ff41;
+  border-color: #00ff41;
+  color: #000;
+}
+
+[data-theme="CandyPop"] .btn.primary {
+  background: #ff69b4;
+  border-color: #ff69b4;
+  color: #000;
+}
+
+[data-theme="Dark"] .btn.primary {
+  background: #555555;
+  border-color: #555555;
+  color: #fff;
+}
+
 .overlay {
   position: absolute;
   inset: 0;
@@ -111,16 +169,31 @@ canvas#game {
   background: rgba(15, 22, 36, 0.95);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 14px;
+  padding: 10px;
+}
+
+[data-theme="Matrix"] .card {
+  background: rgba(10, 10, 10, 0.95);
+  border-color: #003b00;
+}
+
+[data-theme="CandyPop"] .card {
+  background: rgba(26, 10, 46, 0.95);
+  border-color: #4a2c7a;
+}
+
+[data-theme="Dark"] .card {
+  background: rgba(0, 0, 0, 0.95);
+  border-color: #333333;
 }
 
 .title {
-  margin: 0 0 10px;
-  font-size: 20px;
+  margin: 0 0 6px;
+  font-size: 18px;
 }
 
 .subhead {
-  margin: 14px 0 8px;
+  margin: 8px 0 4px;
   font-size: 14px;
   color: var(--muted);
 }
@@ -139,7 +212,7 @@ canvas#game {
 
 .intro-wrap {
   width: 100%;
-  margin: 6px 0 8px;
+  margin: 2px 0 6px;
   display: grid;
   place-items: center;
 }
@@ -147,7 +220,7 @@ canvas#game {
 .intro-gif {
   width: 100%;
   max-width: 320px;
-  max-height: 140px;
+  max-height: 85px;
   object-fit: contain;
   border-radius: 8px;
   border: 1px solid #1e2736;
@@ -156,6 +229,95 @@ canvas#game {
 .intro-gif {
   display: block;
 }
+
+/* Multiplayer section */
+.multiplayer-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 8px;
+  margin-top: 6px;
+}
+
+.multiplayer-section .btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#joinMatchBtn {
+  grid-row: 1;
+  grid-column: 2;
+  margin-top: 0;
+  padding: 8px 6px;
+}
+
+#joinMatchHint {
+  grid-row: 2;
+  grid-column: 2;
+}
+
+#createMatchBtn {
+  grid-row: 1;
+  grid-column: 1;
+  margin-top: 0;
+  padding: 8px 6px;
+}
+
+#createMatchHint {
+  grid-row: 2;
+  grid-column: 1;
+}
+
+.coming-soon-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  margin: 0;
+}
+
+/* Theme controls */
+.theme-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 6px;
+  margin-top: 8px;
+}
+
+.theme-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 2px;
+  grid-column: 1 / span 2;
+}
+
+.theme-btn {
+  margin-top: 0;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
+.theme-btn[aria-checked="true"] {
+  border-color: var(--accent, #1d4ed8);
+  background: var(--accent, #1d4ed8);
+  color: #fff;
+}
+
+.theme-btn[aria-checked="false"] {
+  border-color: var(--border);
+}
+
+.setting {
+  margin-top: 8px;
+}
+
+.setting label {
+  font-size: 13px;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .mobile-controls {
   display: none;
   margin-top: 10px;
@@ -297,5 +459,15 @@ canvas#game {
   .mobile-status {
     text-align: center;
     margin-top: 10px;
+  }
+}
+
+/* Reduced motion guard */
+@media (prefers-reduced-motion: reduce) {
+  /* Disable any ambient animation classes or transitions */
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -727,6 +727,41 @@ btnRotR.addEventListener('pointerdown', (e) => {
   tryRotate(rotateCW);
 });
 
+// ---- Theme integration ----
+(function initTheme() {
+  if (typeof ThemeModule === 'undefined') return;
+  ThemeModule.init();
+
+  // Wire up theme buttons
+  var themeBtns = document.querySelectorAll('.theme-btn');
+  for (var i = 0; i < themeBtns.length; i++) {
+    themeBtns[i].addEventListener('click', (function(btn) {
+      return function() {
+        var themeName = btn.getAttribute('data-theme');
+        if (!themeName) return;
+        ThemeModule.selectTheme(themeName);
+        ThemeModule.applyTheme(themeName);
+        // Update aria-checked on all theme buttons
+        for (var j = 0; j < themeBtns.length; j++) {
+          themeBtns[j].setAttribute('aria-checked', 'false');
+        }
+        btn.setAttribute('aria-checked', 'true');
+      };
+    })(themeBtns[i]));
+  }
+
+  // Sync aria-checked to saved theme
+  var saved = ThemeModule.loadSavedTheme ? ThemeModule.loadSavedTheme() : null;
+  var activeTheme = saved || 'Default';
+  for (var k = 0; k < themeBtns.length; k++) {
+    if (themeBtns[k].getAttribute('data-theme') === activeTheme) {
+      themeBtns[k].setAttribute('aria-checked', 'true');
+    } else {
+      themeBtns[k].setAttribute('aria-checked', 'false');
+    }
+  }
+})();
+
 state = 'home';
 resetGameState();
 showHome();

@@ -57,16 +57,31 @@
               />
             </div>
 
-            <button id="startBtn" class="btn primary" type="button">Start</button>
+            <button id="startBtn" class="btn primary" type="button">Play Solo</button>
+
+            <div class="multiplayer-section">
+              <button id="createMatchBtn" class="btn" type="button" disabled aria-describedby="createMatchHint">Create Match</button>
+              <span id="createMatchHint" class="coming-soon-hint">Coming Soon</span>
+              <button id="joinMatchBtn" class="btn" type="button" disabled aria-describedby="joinMatchHint">Join Match</button>
+              <span id="joinMatchHint" class="coming-soon-hint">Coming Soon</span>
+            </div>
 
             <div class="setting">
               <label><input type="checkbox" id="previewNext" /> Preview next block</label>
             </div>
 
+            <div class="theme-controls" role="radiogroup" aria-label="Theme selection">
+              <span class="theme-label">Theme:</span>
+              <button id="themeDefault" class="btn theme-btn" type="button" role="radio" aria-checked="true" data-theme="Default" aria-label="Default theme">Default</button>
+              <button id="themeMatrix" class="btn theme-btn" type="button" role="radio" aria-checked="false" data-theme="Matrix" aria-label="Matrix theme">Matrix</button>
+              <button id="themeCandyPop" class="btn theme-btn" type="button" role="radio" aria-checked="false" data-theme="CandyPop" aria-label="CandyPop theme">CandyPop</button>
+              <button id="themeDark" class="btn theme-btn" type="button" role="radio" aria-checked="false" data-theme="Dark" aria-label="Dark theme">Dark</button>
+            </div>
+
             <h3 class="subhead">High scores</h3>
             <ol id="highScores" class="scores"></ol>
 
-            <p class="hint">Audio starts after Start.</p>
+            <p class="hint">Audio starts after Play Solo.</p>
           </div>
         </div>
 
@@ -94,6 +109,7 @@
       </div>
     </main>
 
+    <script src="theme.js"></script>
     <script type="module" src="game.js"></script>
   </body>
 </html>
