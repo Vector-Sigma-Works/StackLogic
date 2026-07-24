@@ -380,10 +380,9 @@ function updateHUD() {
 }
 
 function drawCell(x, y, color) {
-  ctx.fillStyle = color;
-  ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-  ctx.strokeRect(x * CELL + 0.5, y * CELL + 0.5, CELL - 1, CELL - 1);
+  var themeId = (typeof window !== 'undefined' && window.ThemeModule && window.ThemeModule.getCurrentTheme)
+    ? window.ThemeModule.getCurrentTheme() : 'Default';
+  drawBrick(ctx, x, y, color, themeId, CELL);
 }
 
 function draw() {
@@ -433,12 +432,9 @@ function draw() {
     for (let y = 0; y < shape.length; y++) {
       for (let x = 0; x < shape[y].length; x++) {
         if (!shape[y][x]) continue;
-        const px = basePx + x * small;
-        const py = basePy + y * small;
-        ctx.fillStyle = COLORS[nextType];
-        ctx.fillRect(px, py, small, small);
-        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-        ctx.strokeRect(px + 0.5, py + 0.5, small - 1, small - 1);
+        drawBrickAt(ctx, basePx + x * small, basePy + y * small, COLORS[nextType],
+          (typeof window !== 'undefined' && window.ThemeModule && window.ThemeModule.getCurrentTheme)
+            ? window.ThemeModule.getCurrentTheme() : 'Default', small);
       }
     }
 
@@ -729,8 +725,8 @@ btnRotR.addEventListener('pointerdown', (e) => {
 
 // ---- Theme integration ----
 (function initTheme() {
-  if (typeof ThemeModule === 'undefined') return;
-  ThemeModule.init();
+  if (typeof window === 'undefined' || !window.ThemeModule) return;
+  window.ThemeModule.init();
 
   // Wire up theme buttons
   var themeBtns = document.querySelectorAll('.theme-btn');
@@ -739,8 +735,8 @@ btnRotR.addEventListener('pointerdown', (e) => {
       return function() {
         var themeName = btn.getAttribute('data-theme');
         if (!themeName) return;
-        ThemeModule.selectTheme(themeName);
-        ThemeModule.applyTheme(themeName);
+        window.ThemeModule.selectTheme(themeName);
+        window.ThemeModule.applyTheme(themeName);
         // Update aria-checked on all theme buttons
         for (var j = 0; j < themeBtns.length; j++) {
           themeBtns[j].setAttribute('aria-checked', 'false');
@@ -751,7 +747,7 @@ btnRotR.addEventListener('pointerdown', (e) => {
   }
 
   // Sync aria-checked to saved theme
-  var saved = ThemeModule.loadSavedTheme ? ThemeModule.loadSavedTheme() : null;
+  var saved = window.ThemeModule.loadSavedTheme ? window.ThemeModule.loadSavedTheme() : null;
   var activeTheme = saved || 'Default';
   for (var k = 0; k < themeBtns.length; k++) {
     if (themeBtns[k].getAttribute('data-theme') === activeTheme) {

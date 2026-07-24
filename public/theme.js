@@ -132,7 +132,8 @@
     applyTheme: applyTheme,
     init: init,
     prefersReducedMotion: prefersReducedMotion,
-    loadSavedTheme: loadSavedTheme
+    loadSavedTheme: loadSavedTheme,
+    getCurrentTheme: function () { return currentTheme; }
   };
 
 })(typeof window !== 'undefined' ? window : globalThis);
