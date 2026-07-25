@@ -1,3 +1,5 @@
+import { createThemeRainBootstrap } from './theme-rain-bootstrap.js';
+
 const COLS = 10;
 const ROWS = 20;
 const CELL = 30;
@@ -726,6 +728,15 @@ btnRotR.addEventListener('pointerdown', (e) => {
 // ---- Theme integration ----
 (function initTheme() {
   if (typeof window === 'undefined' || !window.ThemeModule) return;
+
+  const themeRainBootstrap = createThemeRainBootstrap(window);
+  themeRainBootstrap.start();
+  window.addEventListener('pagehide', (event) => {
+    if (event.persisted !== true) {
+      themeRainBootstrap.dispose();
+    }
+  });
+
   window.ThemeModule.init();
 
   // Wire up theme buttons

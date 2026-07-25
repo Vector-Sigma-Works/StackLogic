@@ -65,7 +65,17 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+.matrix-rain-layer {
+  position: fixed;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  z-index: 0;
+}
+
 .wrap {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: 16px;
