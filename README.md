@@ -1,6 +1,6 @@
 # StackLogic
 
-**Version:** v0.1.0-beta.1
+**Version:** v0.2.0-beta.1
 
 A fast-paced, block-stacking arcade puzzler with crisp controls and escalating challenge.
 

@@ -199,9 +199,9 @@ describe('amendment: index.html renderer script load order', () => {
       new URL('../public/index.html', import.meta.url),
       'utf8'
     );
-    const themeIdx = html.indexOf('<script src="theme.js"');
-    const rendererIdx = html.indexOf('<script src="theme-renderer.js"');
-    const gameIdx = html.indexOf('src="game.js"');
+    const themeIdx = html.indexOf('<script src="theme.js');
+    const rendererIdx = html.indexOf('<script src="theme-renderer.js');
+    const gameIdx = html.indexOf('src="game.js');
     assert.ok(themeIdx >= 0, 'theme.js script tag must exist');
     assert.ok(rendererIdx >= 0, 'theme-renderer.js script tag must exist');
     assert.ok(gameIdx >= 0, 'game.js script tag must exist');

@@ -2,8 +2,35 @@
 
 All notable changes to this project are recorded here.
 
-## Unreleased
-- Added title-screen checkbox to toggle "Preview next block" (localStorage key: stacklogic_preview_next_v1).
-- Implemented next-piece preview rendering on canvas and prefetched next piece logic.
-- Fixed preview position so it renders inside the canvas.
-- Added iOS double-tap guard for on-screen controls to reduce accidental zooming.
+## [Unreleased]
+
+## [0.2.0-beta.1] - 2026-07-25
+
+### Added
+- Added a title screen with Default, Matrix, CandyPop, and Dark themes.
+- Added theme-aware piece rendering and persistent local theme selection.
+- Added Matrix rain with single-owner animation lifecycle, resize and DPR handling, reduced-motion support, cleanup fencing, and non-interference with gameplay controls.
+- Added a dedicated pause menu with synchronized theme selection and explicit resume behavior.
+- Added deterministic unit and real-browser acceptance coverage for themes, rain lifecycle, browser integration, and responsive controls.
+
+### Changed
+- Matrix game pieces now use deterministic solid green shades without glyph faces.
+- Dark game pieces now use deterministic solid black-to-grey shades.
+- Wide touch devices such as iPad Pro now expose on-screen controls based on coarse/no-hover input capability rather than viewport width alone.
+
+### Fixed
+- Preserved Matrix stream identity and geometry across viewport and DPR changes.
+- Prevented duplicate animation ownership, stale callbacks, interaction interception, and reduced-motion resource allocation.
+
+## [0.1.0-beta.1] - 2026-02-08
+
+### Added
+- Added a title-screen checkbox to toggle the next-block preview using localStorage key `stacklogic_preview_next_v1`.
+- Added next-piece preview rendering and prefetched next-piece logic.
+- Added localStorage-only high scores for GitHub Pages.
+- Added GitHub Pages deployment.
+
+### Fixed
+- Kept the next-piece preview inside the canvas.
+- Added an iOS double-tap guard for on-screen controls.
+- Corrected GitHub Pages paths for music and intro assets.

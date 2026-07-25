@@ -482,7 +482,11 @@ describe('adapter: tests use real createRainController and stored non-auto-runni
   it('adapter imports createRainController from the real controller module, callbacks are stored not auto-running', () => {
     const adapterPath = join(__dirname, '..', 'public', 'theme-rain-adapter.js');
     const source = readFileSync(adapterPath, 'utf-8');
-    assert.ok(source.includes("from './theme-rain-controller.js'"), 'adapter imports real controller');
+    assert.match(
+      source,
+      /from '\.\/theme-rain-controller\.js(?:\?v=[^']+)?'/,
+      'adapter imports real controller'
+    );
     assert.ok(source.includes('createRainController'), 'adapter uses createRainController');
   });
 });

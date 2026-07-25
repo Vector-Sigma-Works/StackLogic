@@ -1,4 +1,4 @@
-import { createThemeRainBootstrap } from './theme-rain-bootstrap.js';
+import { createThemeRainBootstrap } from './theme-rain-bootstrap.js?v=0.2.0-beta.1';
 
 const COLS = 10;
 const ROWS = 20;
