@@ -1,10 +1,12 @@
+<!-- Keep this default-branch README synchronized with the current UI, canonical URLs, release version, and key screenshots. -->
+
 # StackLogic
 
 **Version:** v0.2.0-beta.1
 
-A fast-paced, block-stacking arcade puzzler with crisp controls and escalating challenge.
+StackLogic is a fast, browser-based falling-block arcade puzzler with responsive keyboard and touch controls, persistent local scores, and four visual themes that can be changed before play or while paused.
 
-**Play the current release:** https://vector-sigma-works.github.io/StackLogic/
+**[Play StackLogic](https://vector-sigma-works.github.io/StackLogic/)** · **[Latest release](https://github.com/Vector-Sigma-Works/StackLogic/releases/tag/v0.2.0-beta.1)** · **[Changelog](CHANGELOG.md)** · **[Backlog](BACKLOG.md)**
 
 ## Screenshots
 
@@ -16,36 +18,56 @@ A fast-paced, block-stacking arcade puzzler with crisp controls and escalating c
 | --- | --- |
 | ![Paused CandyPop game with Default, Matrix, CandyPop, and Dark theme controls](docs/screenshots/pause-theme-picker.png) | ![CandyPop gameplay in an iPad-class landscape viewport with touch controls](docs/screenshots/ipad-touch-controls.png) |
 
+## Highlights
+
+- **Four persistent themes:** Default, Matrix, CandyPop, and Dark.
+- **Live theme switching:** choose a theme on the title screen or change it while paused without restarting the game.
+- **Responsive input:** keyboard controls on desktop and on-screen controls for touch and coarse-pointer devices, including wide iPad-class layouts.
+- **Accessible motion and navigation:** Matrix rain follows live reduced-motion preferences; theme controls support Arrow keys and Home/End with roving focus.
+- **Local play data:** optional next-piece preview and local high scores work without an account.
+- **Static deployment:** the production game runs on GitHub Pages; the Express server is provided for local development.
+
+## Controls
+
+| Action | Keyboard | Touch |
+| --- | --- | --- |
+| Move | Left / Right arrows | Left / Right |
+| Soft drop | Down arrow | Drop |
+| Rotate right | Up arrow or `X` | Rot R |
+| Rotate left | `Z` | Rot L |
+| Hard drop | Space | — |
+| Pause / resume | `P` | Pause / Resume |
+| Return home | `R` | Restart (portrait layout) |
+
 ## Run locally
 
-Prereqs: Node.js 18+ recommended.
+Requires Node.js 18 or newer.
 
 ```bash
 npm install
 npm start
 ```
 
-Then open: http://localhost:3000
+Open http://localhost:3000.
+
+## Test
+
+```bash
+npm test
+```
+
+The test suite covers release metadata, theme rendering and accessibility, Matrix rain lifecycle and cleanup, responsive controls, and GitHub Pages workflow boundaries.
 
 ## Project layout
 
-- `server.js` — Express server
-- `public/` — client assets
-- `data/` — game data / saved state (if used)
+- `public/` — browser game, themes, styles, and static assets
+- `tests/` — deterministic Node test suite
+- `docs/screenshots/` — current product screenshots used by this README
+- `.github/workflows/pages.yml` — pull-request tests and GitHub Pages deployment
+- `server.js` — lightweight Express development server
+- `CHANGELOG.md` — released product changes
+- `BACKLOG.md` — parked roadmap and review follow-ups
 
-## Versioning
+## Release status
 
-Current release line: **v0.x beta**.
-
-- **Beta** means: gameplay + UI can change, save formats aren’t guaranteed stable, and there may be rough edges.
-- **Patch** releases (v0.1.0-beta.2, beta.3, …): fixes/tweaks.
-- **Minor** releases (v0.2.0-beta.1, …): new features, bigger balance/feel changes.
-- **v1.0.0** target: rules/feel locked, stable saves (if applicable), and “ship-ready” polish.
-
-## Notes
-
-This repo is intentionally lightweight and easy to run.
-
-## Backlog / Roadmap Notes
-
-- See `BACKLOG.md` for parked roadmap items, review follow-ups, and handoff notes for future backlog processing.
+StackLogic is currently in the **v0.x beta** line. Gameplay, UI, and local data formats may change before v1.0. Patch prereleases focus on fixes and refinements; minor prereleases may introduce larger gameplay or presentation changes.
