@@ -21,6 +21,7 @@ All notable changes to this project are recorded here.
 ### Fixed
 - Preserved Matrix stream identity and geometry across viewport and DPR changes.
 - Prevented duplicate animation ownership, stale callbacks, interaction interception, and reduced-motion resource allocation.
+- Remediated known Express transitive dependency advisories in the development/server toolchain.
 
 ## [0.1.0-beta.1] - 2026-02-08
 
