@@ -4,6 +4,18 @@
 
 A fast-paced, block-stacking arcade puzzler with crisp controls and escalating challenge.
 
+**Play the current release:** https://vector-sigma-works.github.io/StackLogic/
+
+## Screenshots
+
+### Matrix gameplay
+
+![StackLogic Matrix gameplay with solid-green pieces and digital rain](docs/screenshots/matrix-gameplay.png)
+
+| Pause-time theme selection | iPad-class touch controls |
+| --- | --- |
+| ![Paused CandyPop game with Default, Matrix, CandyPop, and Dark theme controls](docs/screenshots/pause-theme-picker.png) | ![CandyPop gameplay in an iPad-class landscape viewport with touch controls](docs/screenshots/ipad-touch-controls.png) |
+
 ## Run locally
 
 Prereqs: Node.js 18+ recommended.
