@@ -750,36 +750,65 @@ btnRotR.addEventListener('pointerdown', (e) => {
 
   window.ThemeModule.init();
 
-  // Wire up theme buttons
+  // Wire up accessible radio-group theme buttons.
   var themeBtns = document.querySelectorAll('.theme-btn');
+
+  function syncThemeButtons(themeName) {
+    for (var i = 0; i < themeBtns.length; i++) {
+      var selected = themeBtns[i].getAttribute('data-theme') === themeName;
+      themeBtns[i].setAttribute('aria-checked', selected ? 'true' : 'false');
+      themeBtns[i].setAttribute('tabindex', selected ? '0' : '-1');
+    }
+  }
+
+  function setActiveTheme(themeName) {
+    if (!themeName) return;
+    window.ThemeModule.selectTheme(themeName);
+    window.ThemeModule.applyTheme(themeName);
+    syncThemeButtons(themeName);
+  }
+
+  function handleThemeKeydown(event, btn) {
+    var group = btn.closest('.theme-controls');
+    if (!group) return;
+    var groupBtns = group.querySelectorAll('.theme-btn');
+    var currentIndex = Array.prototype.indexOf.call(groupBtns, btn);
+    var targetIndex = currentIndex;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      targetIndex = (currentIndex + 1) % groupBtns.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      targetIndex = (currentIndex - 1 + groupBtns.length) % groupBtns.length;
+    } else if (event.key === 'Home') {
+      targetIndex = 0;
+    } else if (event.key === 'End') {
+      targetIndex = groupBtns.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    var target = groupBtns[targetIndex];
+    setActiveTheme(target.getAttribute('data-theme'));
+    target.focus();
+  }
+
   for (var i = 0; i < themeBtns.length; i++) {
     themeBtns[i].addEventListener('click', (function(btn) {
       return function() {
-        var themeName = btn.getAttribute('data-theme');
-        if (!themeName) return;
-        window.ThemeModule.selectTheme(themeName);
-        window.ThemeModule.applyTheme(themeName);
-        // Keep home and pause theme controls synchronized.
-        for (var j = 0; j < themeBtns.length; j++) {
-          themeBtns[j].setAttribute(
-            'aria-checked',
-            themeBtns[j].getAttribute('data-theme') === themeName ? 'true' : 'false'
-          );
-        }
+        setActiveTheme(btn.getAttribute('data-theme'));
+      };
+    })(themeBtns[i]));
+    themeBtns[i].addEventListener('keydown', (function(btn) {
+      return function(event) {
+        handleThemeKeydown(event, btn);
       };
     })(themeBtns[i]));
   }
 
-  // Sync aria-checked to saved theme
+  // Sync selection and roving tab stops to the saved theme.
   var saved = window.ThemeModule.loadSavedTheme ? window.ThemeModule.loadSavedTheme() : null;
-  var activeTheme = saved || 'Default';
-  for (var k = 0; k < themeBtns.length; k++) {
-    if (themeBtns[k].getAttribute('data-theme') === activeTheme) {
-      themeBtns[k].setAttribute('aria-checked', 'true');
-    } else {
-      themeBtns[k].setAttribute('aria-checked', 'false');
-    }
-  }
+  syncThemeButtons(saved || 'Default');
 })();
 
 state = 'home';

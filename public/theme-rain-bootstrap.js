@@ -5,6 +5,14 @@ import { createRainBrowserAdapter } from './theme-rain-adapter.js?v=0.2.0-beta.1
 
 export function createThemeRainBootstrap(root) {
   const document = root.document;
+  let reducedMotionQuery = null;
+
+  function getReducedMotionQuery() {
+    if (!reducedMotionQuery) {
+      reducedMotionQuery = root.matchMedia('(prefers-reduced-motion: reduce)');
+    }
+    return reducedMotionQuery;
+  }
 
   const adapter = createRainBrowserAdapter({
     createCanvasLayer() {
@@ -53,7 +61,7 @@ export function createThemeRainBootstrap(root) {
     },
 
     reducedMotionMatches() {
-      return root.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      return getReducedMotionQuery().matches;
     },
 
     random() {
@@ -62,6 +70,35 @@ export function createThemeRainBootstrap(root) {
   });
 
   let started = false;
+
+  function handleReducedMotionChange() {
+    if (!started) return;
+    const themeModule = root.ThemeModule;
+    const currentTheme = themeModule && typeof themeModule.getCurrentTheme === 'function'
+      ? themeModule.getCurrentTheme()
+      : null;
+    if (typeof currentTheme === 'string') {
+      adapter.handleTheme(currentTheme);
+    }
+  }
+
+  function addReducedMotionListener() {
+    const query = getReducedMotionQuery();
+    if (typeof query.addEventListener === 'function') {
+      query.addEventListener('change', handleReducedMotionChange);
+    } else if (typeof query.addListener === 'function') {
+      query.addListener(handleReducedMotionChange);
+    }
+  }
+
+  function removeReducedMotionListener() {
+    if (!reducedMotionQuery) return;
+    if (typeof reducedMotionQuery.removeEventListener === 'function') {
+      reducedMotionQuery.removeEventListener('change', handleReducedMotionChange);
+    } else if (typeof reducedMotionQuery.removeListener === 'function') {
+      reducedMotionQuery.removeListener(handleReducedMotionChange);
+    }
+  }
 
   function handleThemeChange(event) {
     if (!started) return;
@@ -75,6 +112,7 @@ export function createThemeRainBootstrap(root) {
     if (started) return;
     started = true;
     document.addEventListener('themechange', handleThemeChange);
+    addReducedMotionListener();
 
     const themeModule = root.ThemeModule;
     const currentTheme = themeModule && typeof themeModule.getCurrentTheme === 'function'
@@ -89,6 +127,7 @@ export function createThemeRainBootstrap(root) {
     if (!started) return;
     started = false;
     document.removeEventListener('themechange', handleThemeChange);
+    removeReducedMotionListener();
     adapter.dispose();
   }
 

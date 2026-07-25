@@ -12,6 +12,8 @@ function createFakeRoot(options = {}) {
     documentRemoves: [],
     windowAdds: [],
     windowRemoves: [],
+    mediaAdds: [],
+    mediaRemoves: [],
     requestedFrames: [],
     cancelledFrames: [],
     transforms: [],
@@ -19,6 +21,7 @@ function createFakeRoot(options = {}) {
   };
   const documentListeners = new Map();
   const windowListeners = new Map();
+  const mediaListeners = new Map();
   const frameCallbacks = new Map();
   let nextFrameId = 40;
 
@@ -84,6 +87,18 @@ function createFakeRoot(options = {}) {
     },
   };
 
+  const mediaQueryList = {
+    matches: reducedMotion,
+    addEventListener(type, handler) {
+      records.mediaAdds.push([type, handler]);
+      mediaListeners.set(type, handler);
+    },
+    removeEventListener(type, handler) {
+      records.mediaRemoves.push([type, handler]);
+      if (mediaListeners.get(type) === handler) mediaListeners.delete(type);
+    },
+  };
+
   const root = {
     document,
     innerWidth: options.width ?? 320,
@@ -97,7 +112,8 @@ function createFakeRoot(options = {}) {
     Math: { random: () => 0.5 },
     matchMedia(query) {
       assert.equal(query, '(prefers-reduced-motion: reduce)');
-      return { matches: reducedMotion };
+      mediaQueryList.matches = reducedMotion;
+      return mediaQueryList;
     },
     requestAnimationFrame(callback) {
       const id = ++nextFrameId;
@@ -125,9 +141,20 @@ function createFakeRoot(options = {}) {
     records,
     documentListeners,
     windowListeners,
+    mediaListeners,
     frameCallbacks,
     setCurrentTheme(value) { currentTheme = value; },
-    setReducedMotion(value) { reducedMotion = value; },
+    setReducedMotion(value) {
+      reducedMotion = value;
+      mediaQueryList.matches = value;
+    },
+    dispatchReducedMotion(value) {
+      reducedMotion = value;
+      mediaQueryList.matches = value;
+      const handler = mediaListeners.get('change');
+      assert.equal(typeof handler, 'function');
+      handler({ matches: value });
+    },
     dispatchTheme(detail) {
       const handler = documentListeners.get('themechange');
       assert.equal(typeof handler, 'function');
@@ -228,6 +255,33 @@ describe('Matrix rain browser bootstrap', () => {
     assert.equal(fake.records.windowAdds.length, 0);
     assert.equal(fake.records.requestedFrames.length, 0);
     assert.equal(bootstrap.getState().state, 'IDLE');
+  });
+
+  test('live reduced-motion changes stop and restart current Matrix ownership', () => {
+    const fake = createFakeRoot({ currentTheme: 'Matrix', reducedMotion: false });
+    const bootstrap = createThemeRainBootstrap(fake.root);
+    bootstrap.start();
+    bootstrap.start();
+
+    assert.equal(fake.records.mediaAdds.length, 1);
+    assert.equal(fake.records.mediaAdds[0][0], 'change');
+    assert.equal(bootstrap.getState().state, 'RUNNING');
+    const firstCanvas = fake.records.appended[0];
+    const firstFrame = fake.records.requestedFrames[0][0];
+
+    fake.dispatchReducedMotion(true);
+    assert.equal(bootstrap.getState().state, 'IDLE');
+    assert.deepEqual(fake.records.removed, [firstCanvas]);
+    assert.deepEqual(fake.records.cancelledFrames, [firstFrame]);
+
+    fake.dispatchReducedMotion(false);
+    assert.equal(bootstrap.getState().state, 'RUNNING');
+    assert.equal(fake.records.appended.length, 2);
+
+    const mediaHandler = fake.records.mediaAdds[0][1];
+    bootstrap.dispose();
+    bootstrap.dispose();
+    assert.deepEqual(fake.records.mediaRemoves, [['change', mediaHandler]]);
   });
 
   test('dispose is idempotent, removes exact ownership once, and captured stale theme events are inert', () => {

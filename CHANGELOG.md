@@ -11,6 +11,7 @@ All notable changes to this project are recorded here.
 - Added theme-aware piece rendering and persistent local theme selection.
 - Added Matrix rain with single-owner animation lifecycle, resize and DPR handling, reduced-motion support, cleanup fencing, and non-interference with gameplay controls.
 - Added a dedicated pause menu with synchronized theme selection and explicit resume behavior.
+- Added Arrow-key and Home/End navigation with roving focus for theme radio groups.
 - Added deterministic unit and real-browser acceptance coverage for themes, rain lifecycle, browser integration, and responsive controls.
 
 ### Changed
@@ -21,6 +22,8 @@ All notable changes to this project are recorded here.
 ### Fixed
 - Preserved Matrix stream identity and geometry across viewport and DPR changes.
 - Prevented duplicate animation ownership, stale callbacks, interaction interception, and reduced-motion resource allocation.
+- Stopped and restarted Matrix rain when the operating-system reduced-motion preference changes live.
+- Corrected selected Matrix and CandyPop theme-label contrast to meet WCAG AA.
 - Remediated known Express transitive dependency advisories in the development/server toolchain.
 
 ## [0.1.0-beta.1] - 2026-02-08

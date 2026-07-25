@@ -14,6 +14,7 @@
   --panel: #0f1624;
   --border: #283244;
   --accent: #1d4ed8;
+  --accent-fg: #ffffff;
 }
 
 /* Theme: Matrix */
@@ -24,6 +25,7 @@
   --panel: #0d1a0d;
   --border: #003b00;
   --accent: #00ff41;
+  --accent-fg: #001a07;
 }
 
 /* Theme: CandyPop */
@@ -34,6 +36,7 @@
   --panel: #2d1b4e;
   --border: #4a2c7a;
   --accent: #ff69b4;
+  --accent-fg: #2d0018;
 }
 
 /* Theme: Dark */
@@ -44,6 +47,7 @@
   --panel: #111111;
   --border: #333333;
   --accent: #555555;
+  --accent-fg: #ffffff;
 }
 
 * { box-sizing: border-box; }
@@ -309,7 +313,7 @@ canvas#game {
 .theme-btn[aria-checked="true"] {
   border-color: var(--accent, #1d4ed8);
   background: var(--accent, #1d4ed8);
-  color: #fff;
+  color: var(--accent-fg, #fff);
 }
 
 .theme-btn[aria-checked="false"] {
