@@ -1,6 +1,8 @@
-name: Deploy to GitHub Pages
+name: Test and deploy to GitHub Pages
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
@@ -11,11 +13,42 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run tests
+        run: npm test
+
+      - name: Check shipped JavaScript syntax
+        run: |
+          node --check public/game.js
+          node --check public/theme.js
+          node --check public/theme-renderer.js
+          node --check public/theme-rain-adapter.js
+          node --check public/theme-rain-bootstrap.js
+          node --check public/theme-rain-controller.js
+
   deploy:
+    name: deploy
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: test
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -24,7 +57,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # This project serves static files from ./public
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
