@@ -3,9 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="stacklogic-version" content="0.2.0-beta.1" />
     <title>Stacklogic</title>
     <meta name="description" content="Stacklogic, a falling block game." />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="style.css?v=0.2.0-beta.1" />
   </head>
   <body>
     <main class="wrap">
@@ -57,16 +59,46 @@
               />
             </div>
 
-            <button id="startBtn" class="btn primary" type="button">Start</button>
+            <button id="startBtn" class="btn primary" type="button">Play Solo</button>
+
+            <div class="multiplayer-section">
+              <button id="createMatchBtn" class="btn" type="button" disabled aria-describedby="createMatchHint">Create Match</button>
+              <span id="createMatchHint" class="coming-soon-hint">Coming Soon</span>
+              <button id="joinMatchBtn" class="btn" type="button" disabled aria-describedby="joinMatchHint">Join Match</button>
+              <span id="joinMatchHint" class="coming-soon-hint">Coming Soon</span>
+            </div>
 
             <div class="setting">
               <label><input type="checkbox" id="previewNext" /> Preview next block</label>
             </div>
 
+            <div class="theme-controls" role="radiogroup" aria-label="Theme selection">
+              <span class="theme-label">Theme:</span>
+              <button id="themeDefault" class="btn theme-btn" type="button" role="radio" aria-checked="true" tabindex="0" data-theme="Default" aria-label="Default theme">Default</button>
+              <button id="themeMatrix" class="btn theme-btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-theme="Matrix" aria-label="Matrix theme">Matrix</button>
+              <button id="themeCandyPop" class="btn theme-btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-theme="CandyPop" aria-label="CandyPop theme">CandyPop</button>
+              <button id="themeDark" class="btn theme-btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-theme="Dark" aria-label="Dark theme">Dark</button>
+            </div>
+
             <h3 class="subhead">High scores</h3>
             <ol id="highScores" class="scores"></ol>
 
-            <p class="hint">Audio starts after Start.</p>
+            <p class="hint">Audio starts after Play Solo.</p>
+          </div>
+        </div>
+
+        <div id="pauseMenu" class="overlay" aria-label="Paused game menu">
+          <div class="card">
+            <h2 class="title">Paused</h2>
+            <button id="pauseResumeBtn" class="btn primary" type="button">Resume</button>
+
+            <div class="theme-controls" role="radiogroup" aria-label="Paused theme selection">
+              <span class="theme-label">Theme:</span>
+              <button id="pauseThemeDefault" class="btn theme-btn" type="button" role="radio" aria-checked="true" tabindex="0" data-theme="Default" aria-label="Default theme">Default</button>
+              <button id="pauseThemeMatrix" class="btn theme-btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-theme="Matrix" aria-label="Matrix theme">Matrix</button>
+              <button id="pauseThemeCandyPop" class="btn theme-btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-theme="CandyPop" aria-label="CandyPop theme">CandyPop</button>
+              <button id="pauseThemeDark" class="btn theme-btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-theme="Dark" aria-label="Dark theme">Dark</button>
+            </div>
           </div>
         </div>
 
@@ -94,6 +126,8 @@
       </div>
     </main>
 
-    <script type="module" src="game.js"></script>
+    <script src="theme.js?v=0.2.0-beta.1"></script>
+    <script src="theme-renderer.js?v=0.2.0-beta.1"></script>
+    <script type="module" src="game.js?v=0.2.0-beta.1"></script>
   </body>
 </html>

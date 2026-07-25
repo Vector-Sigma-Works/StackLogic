@@ -1,3 +1,5 @@
+import { createThemeRainBootstrap } from './theme-rain-bootstrap.js?v=0.2.0-beta.1';
+
 const COLS = 10;
 const ROWS = 20;
 const CELL = 30;
@@ -34,6 +36,8 @@ const highScoresEl = document.getElementById('highScores');
 const gameOverOverlay = document.getElementById('gameOver');
 const gameOverText = document.getElementById('gameOverText');
 const goHomeBtn = document.getElementById('goHomeBtn');
+const pauseMenu = document.getElementById('pauseMenu');
+const pauseResumeBtn = document.getElementById('pauseResumeBtn');
 
 const pauseBtn = document.getElementById('pauseBtn');
 const portraitPauseBtn = document.getElementById('portraitPauseBtn');
@@ -380,10 +384,9 @@ function updateHUD() {
 }
 
 function drawCell(x, y, color) {
-  ctx.fillStyle = color;
-  ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-  ctx.strokeRect(x * CELL + 0.5, y * CELL + 0.5, CELL - 1, CELL - 1);
+  var themeId = (typeof window !== 'undefined' && window.ThemeModule && window.ThemeModule.getCurrentTheme)
+    ? window.ThemeModule.getCurrentTheme() : 'Default';
+  drawBrick(ctx, x, y, color, themeId, CELL);
 }
 
 function draw() {
@@ -433,12 +436,9 @@ function draw() {
     for (let y = 0; y < shape.length; y++) {
       for (let x = 0; x < shape[y].length; x++) {
         if (!shape[y][x]) continue;
-        const px = basePx + x * small;
-        const py = basePy + y * small;
-        ctx.fillStyle = COLORS[nextType];
-        ctx.fillRect(px, py, small, small);
-        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-        ctx.strokeRect(px + 0.5, py + 0.5, small - 1, small - 1);
+        drawBrickAt(ctx, basePx + x * small, basePy + y * small, COLORS[nextType],
+          (typeof window !== 'undefined' && window.ThemeModule && window.ThemeModule.getCurrentTheme)
+            ? window.ThemeModule.getCurrentTheme() : 'Default', small);
       }
     }
 
@@ -518,12 +518,14 @@ function togglePause() {
     setStatus('Paused');
     pauseBtn.textContent = 'Resume';
     portraitPauseBtn.textContent = 'Resume';
+    showOverlay(pauseMenu);
     pauseMusic();
   } else if (state === 'paused') {
     state = 'playing';
     setStatus('');
     pauseBtn.textContent = 'Pause';
     portraitPauseBtn.textContent = 'Pause';
+    hideOverlay(pauseMenu);
     lastTime = performance.now();
     resumeMusic();
   }
@@ -533,6 +535,7 @@ function goHome() {
   state = 'home';
   pauseBtn.textContent = 'Pause';
   portraitPauseBtn.textContent = 'Pause';
+  hideOverlay(pauseMenu);
   stopMusic();
   showHome();
   resetGameState();
@@ -541,6 +544,7 @@ function goHome() {
 function triggerGameOver(reason) {
   if (state === 'gameover') return;
   state = 'gameover';
+  hideOverlay(pauseMenu);
   stopMusic();
   setStatus('Game Over');
   showGameOver('Game Over');
@@ -568,6 +572,7 @@ function triggerGameOver(reason) {
 function startGame() {
   hideHome();
   hideOverlay(gameOverOverlay);
+  hideOverlay(pauseMenu);
   resetGameState();
   state = 'playing';
   pauseBtn.textContent = 'Pause';
@@ -633,6 +638,10 @@ pauseBtn.addEventListener('click', () => {
 portraitPauseBtn.addEventListener('click', () => {
   if (state === 'home' || state === 'gameover') return;
   togglePause();
+});
+
+pauseResumeBtn.addEventListener('click', () => {
+  if (state === 'paused') togglePause();
 });
 
 portraitRestartBtn.addEventListener('click', () => {
@@ -726,6 +735,81 @@ btnRotR.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   tryRotate(rotateCW);
 });
+
+// ---- Theme integration ----
+(function initTheme() {
+  if (typeof window === 'undefined' || !window.ThemeModule) return;
+
+  const themeRainBootstrap = createThemeRainBootstrap(window);
+  themeRainBootstrap.start();
+  window.addEventListener('pagehide', (event) => {
+    if (event.persisted !== true) {
+      themeRainBootstrap.dispose();
+    }
+  });
+
+  window.ThemeModule.init();
+
+  // Wire up accessible radio-group theme buttons.
+  var themeBtns = document.querySelectorAll('.theme-btn');
+
+  function syncThemeButtons(themeName) {
+    for (var i = 0; i < themeBtns.length; i++) {
+      var selected = themeBtns[i].getAttribute('data-theme') === themeName;
+      themeBtns[i].setAttribute('aria-checked', selected ? 'true' : 'false');
+      themeBtns[i].setAttribute('tabindex', selected ? '0' : '-1');
+    }
+  }
+
+  function setActiveTheme(themeName) {
+    if (!themeName) return;
+    window.ThemeModule.selectTheme(themeName);
+    window.ThemeModule.applyTheme(themeName);
+    syncThemeButtons(themeName);
+  }
+
+  function handleThemeKeydown(event, btn) {
+    var group = btn.closest('.theme-controls');
+    if (!group) return;
+    var groupBtns = group.querySelectorAll('.theme-btn');
+    var currentIndex = Array.prototype.indexOf.call(groupBtns, btn);
+    var targetIndex = currentIndex;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      targetIndex = (currentIndex + 1) % groupBtns.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      targetIndex = (currentIndex - 1 + groupBtns.length) % groupBtns.length;
+    } else if (event.key === 'Home') {
+      targetIndex = 0;
+    } else if (event.key === 'End') {
+      targetIndex = groupBtns.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    var target = groupBtns[targetIndex];
+    setActiveTheme(target.getAttribute('data-theme'));
+    target.focus();
+  }
+
+  for (var i = 0; i < themeBtns.length; i++) {
+    themeBtns[i].addEventListener('click', (function(btn) {
+      return function() {
+        setActiveTheme(btn.getAttribute('data-theme'));
+      };
+    })(themeBtns[i]));
+    themeBtns[i].addEventListener('keydown', (function(btn) {
+      return function(event) {
+        handleThemeKeydown(event, btn);
+      };
+    })(themeBtns[i]));
+  }
+
+  // Sync selection and roving tab stops to the saved theme.
+  var saved = window.ThemeModule.loadSavedTheme ? window.ThemeModule.loadSavedTheme() : null;
+  syncThemeButtons(saved || 'Default');
+})();
 
 state = 'home';
 resetGameState();
