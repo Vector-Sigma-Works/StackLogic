@@ -36,6 +36,8 @@ const highScoresEl = document.getElementById('highScores');
 const gameOverOverlay = document.getElementById('gameOver');
 const gameOverText = document.getElementById('gameOverText');
 const goHomeBtn = document.getElementById('goHomeBtn');
+const pauseMenu = document.getElementById('pauseMenu');
+const pauseResumeBtn = document.getElementById('pauseResumeBtn');
 
 const pauseBtn = document.getElementById('pauseBtn');
 const portraitPauseBtn = document.getElementById('portraitPauseBtn');
@@ -516,12 +518,14 @@ function togglePause() {
     setStatus('Paused');
     pauseBtn.textContent = 'Resume';
     portraitPauseBtn.textContent = 'Resume';
+    showOverlay(pauseMenu);
     pauseMusic();
   } else if (state === 'paused') {
     state = 'playing';
     setStatus('');
     pauseBtn.textContent = 'Pause';
     portraitPauseBtn.textContent = 'Pause';
+    hideOverlay(pauseMenu);
     lastTime = performance.now();
     resumeMusic();
   }
@@ -531,6 +535,7 @@ function goHome() {
   state = 'home';
   pauseBtn.textContent = 'Pause';
   portraitPauseBtn.textContent = 'Pause';
+  hideOverlay(pauseMenu);
   stopMusic();
   showHome();
   resetGameState();
@@ -539,6 +544,7 @@ function goHome() {
 function triggerGameOver(reason) {
   if (state === 'gameover') return;
   state = 'gameover';
+  hideOverlay(pauseMenu);
   stopMusic();
   setStatus('Game Over');
   showGameOver('Game Over');
@@ -566,6 +572,7 @@ function triggerGameOver(reason) {
 function startGame() {
   hideHome();
   hideOverlay(gameOverOverlay);
+  hideOverlay(pauseMenu);
   resetGameState();
   state = 'playing';
   pauseBtn.textContent = 'Pause';
@@ -631,6 +638,10 @@ pauseBtn.addEventListener('click', () => {
 portraitPauseBtn.addEventListener('click', () => {
   if (state === 'home' || state === 'gameover') return;
   togglePause();
+});
+
+pauseResumeBtn.addEventListener('click', () => {
+  if (state === 'paused') togglePause();
 });
 
 portraitRestartBtn.addEventListener('click', () => {
@@ -748,11 +759,13 @@ btnRotR.addEventListener('pointerdown', (e) => {
         if (!themeName) return;
         window.ThemeModule.selectTheme(themeName);
         window.ThemeModule.applyTheme(themeName);
-        // Update aria-checked on all theme buttons
+        // Keep home and pause theme controls synchronized.
         for (var j = 0; j < themeBtns.length; j++) {
-          themeBtns[j].setAttribute('aria-checked', 'false');
+          themeBtns[j].setAttribute(
+            'aria-checked',
+            themeBtns[j].getAttribute('data-theme') === themeName ? 'true' : 'false'
+          );
         }
-        btn.setAttribute('aria-checked', 'true');
       };
     })(themeBtns[i]));
   }

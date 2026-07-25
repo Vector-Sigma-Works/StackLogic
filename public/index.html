@@ -85,6 +85,21 @@
           </div>
         </div>
 
+        <div id="pauseMenu" class="overlay" aria-label="Paused game menu">
+          <div class="card">
+            <h2 class="title">Paused</h2>
+            <button id="pauseResumeBtn" class="btn primary" type="button">Resume</button>
+
+            <div class="theme-controls" role="radiogroup" aria-label="Paused theme selection">
+              <span class="theme-label">Theme:</span>
+              <button id="pauseThemeDefault" class="btn theme-btn" type="button" role="radio" aria-checked="true" data-theme="Default" aria-label="Default theme">Default</button>
+              <button id="pauseThemeMatrix" class="btn theme-btn" type="button" role="radio" aria-checked="false" data-theme="Matrix" aria-label="Matrix theme">Matrix</button>
+              <button id="pauseThemeCandyPop" class="btn theme-btn" type="button" role="radio" aria-checked="false" data-theme="CandyPop" aria-label="CandyPop theme">CandyPop</button>
+              <button id="pauseThemeDark" class="btn theme-btn" type="button" role="radio" aria-checked="false" data-theme="Dark" aria-label="Dark theme">Dark</button>
+            </div>
+          </div>
+        </div>
+
         <div id="gameOver" class="overlay">
           <div class="card">
             <h2 class="title">Game Over</h2>

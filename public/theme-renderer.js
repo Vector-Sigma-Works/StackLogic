@@ -5,6 +5,10 @@
 (function (root) {
   'use strict';
 
+  var standardPieceColors = ['#67e8f9', '#fde047', '#c084fc', '#86efac', '#fda4af', '#93c5fd', '#fdba74'];
+  var matrixShades = ['#006b2b', '#008f39', '#00a844', '#00bd4d', '#00d657', '#16e968', '#3df27f'];
+  var darkShades = ['#101010', '#1c1c1c', '#282828', '#343434', '#424242', '#525252', '#646464'];
+
   // ---- Renderer descriptors ----
   // Each descriptor defines the visual style for one theme.
   var renderers = {
@@ -28,7 +32,7 @@
       stroke: true,
       strokeStyle: 'rgba(0,255,65,0.4)',
       strokeOffset: 0.5,
-      glyphs: ['\u2593', '\u2592', '\u2591', '\u2588', '\u2580', '\u2584', '\u258c', '\u2590', '\u2595', '\u2596'],
+      glyphs: null,
       cornerRadius: 0,
       highlight: null,
       gradient: false,
@@ -103,27 +107,13 @@
   }
 
   function drawMatrix(ctx, px, py, size, color, r) {
-    // Dark background with green tint
-    ctx.fillStyle = '#0a0a0a';
+    ctx.fillStyle = shadeForColor(color, matrixShades);
     ctx.fillRect(px, py, size, size);
 
-    // Terminal-style outline
     if (r.stroke) {
       ctx.strokeStyle = r.strokeStyle;
       ctx.lineWidth = 1;
       ctx.strokeRect(px + r.strokeOffset, py + r.strokeOffset, size - r.strokeOffset * 2, size - r.strokeOffset * 2);
-    }
-
-    // ASCII glyph face in the center — deterministic selection from brick inputs
-    if (r.glyphs && r.glyphs.length > 0) {
-      ctx.fillStyle = color;
-      ctx.font = 'bold ' + Math.floor(size * 0.6) + 'px monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      // Deterministic glyph index from pixel coordinates (no Math.random)
-      var glyphIndex = Math.abs(((px * 31 + py * 17) | 0) % r.glyphs.length);
-      var glyph = r.glyphs[glyphIndex];
-      ctx.fillText(glyph, px + size / 2, py + size / 2);
     }
   }
 
@@ -176,16 +166,26 @@
   }
 
   function drawDark(ctx, px, py, size, color, r) {
-    // Flat fill
-    ctx.fillStyle = color;
+    ctx.fillStyle = shadeForColor(color, darkShades);
     ctx.fillRect(px, py, size, size);
 
-    // High-contrast thin stroke
     if (r.stroke) {
       ctx.strokeStyle = r.strokeStyle;
       ctx.lineWidth = 1;
       ctx.strokeRect(px + r.strokeOffset, py + r.strokeOffset, size - r.strokeOffset * 2, size - r.strokeOffset * 2);
     }
+  }
+
+  function shadeForColor(color, palette) {
+    var normalized = String(color || '').toLowerCase();
+    var index = standardPieceColors.indexOf(normalized);
+    if (index < 0) {
+      index = 0;
+      for (var i = 0; i < normalized.length; i++) {
+        index = (index * 31 + normalized.charCodeAt(i)) >>> 0;
+      }
+    }
+    return palette[index % palette.length];
   }
 
   // ---- Color utility ----

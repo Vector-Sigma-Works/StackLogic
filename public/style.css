@@ -391,6 +391,17 @@ canvas#game {
   }
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .mobile-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mobile-status {
+    display: block;
+  }
+}
+
 @media (max-width: 520px) and (orientation: portrait) {
   .wrap {
     padding: 12px;

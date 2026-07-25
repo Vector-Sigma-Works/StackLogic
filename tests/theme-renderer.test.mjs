@@ -29,7 +29,7 @@ function makeMockCtx() {
     set strokeStyle(v) { calls.strokeStyle.push(v); },
     get font() { return calls.font[calls.font.length - 1] ?? null; },
     set font(v) { calls.font.push(v); },
-    fillRect(x, y, w, h) { calls.fillRect.push({ x, y, w, h }); },
+    fillRect(x, y, w, h) { calls.fillRect.push({ x, y, w, h, fillStyle: ctx.fillStyle }); },
     strokeRect(x, y, w, h) { calls.strokeRect.push({ x, y, w, h }); },
     fillText(text, x, y) { calls.fillText.push({ text, x, y }); },
     beginPath() { calls.beginPath.push(); },
@@ -134,14 +134,32 @@ describe('theme-renderer: unknown fallback', () => {
   });
 });
 
-describe('theme-renderer: matrix glyphs', () => {
-  it('Matrix renderer descriptor includes glyph/ASCII face tokens', () => {
-    const m = globalThis.getRenderer('Matrix');
-    assert.ok(m.glyphs, 'Matrix missing glyphs field');
-    assert.ok(Array.isArray(m.glyphs), 'Matrix glyphs should be an array');
-    assert.ok(m.glyphs.length > 0, 'Matrix glyphs should not be empty');
-    const allAscii = m.glyphs.every((g) => typeof g === 'string' && g.length === 1);
-    assert.ok(allAscii, 'Matrix glyphs should be single ASCII characters');
+describe('theme-renderer: solid Matrix and Dark palettes', () => {
+  const pieceColors = ['#67e8f9', '#fde047', '#c084fc', '#86efac', '#fda4af', '#93c5fd', '#fdba74'];
+  const matrixShades = ['#006b2b', '#008f39', '#00a844', '#00bd4d', '#00d657', '#16e968', '#3df27f'];
+  const darkShades = ['#101010', '#1c1c1c', '#282828', '#343434', '#424242', '#525252', '#646464'];
+
+  it('Matrix draws each standard piece as one deterministic solid green shade with no glyph', () => {
+    pieceColors.forEach((color, index) => {
+      const { ctx, calls } = makeMockCtx();
+      globalThis.drawBrick(ctx, index, 0, color, 'Matrix', 30);
+      assert.strictEqual(calls.fillRect.length, 1);
+      assert.strictEqual(calls.fillRect[0].fillStyle, matrixShades[index]);
+      assert.strictEqual(calls.fillText.length, 0);
+    });
+    assert.strictEqual(new Set(matrixShades).size, pieceColors.length);
+    assert.strictEqual(globalThis.getRenderer('Matrix').glyphs, null);
+  });
+
+  it('Dark draws each standard piece as one deterministic solid black-to-grey shade', () => {
+    pieceColors.forEach((color, index) => {
+      const { ctx, calls } = makeMockCtx();
+      globalThis.drawBrick(ctx, index, 0, color, 'Dark', 30);
+      assert.strictEqual(calls.fillRect.length, 1);
+      assert.strictEqual(calls.fillRect[0].fillStyle, darkShades[index]);
+      assert.strictEqual(calls.fillText.length, 0);
+    });
+    assert.strictEqual(new Set(darkShades).size, pieceColors.length);
   });
 });
 
@@ -219,40 +237,5 @@ describe('amendment: drawBrickAt pixel-coordinate geometry', () => {
     assert.strictEqual(rect.y, 97);
     assert.strictEqual(rect.w, 20);
     assert.strictEqual(rect.h, 20);
-  });
-});
-
-describe('amendment: stable repeated Matrix glyph rendering', () => {
-  it('same brick inputs produce identical glyph output across calls', () => {
-    const { ctx, calls } = makeMockCtx();
-    // Call drawBrick for Matrix twice with identical inputs
-    globalThis.drawBrick(ctx, 1, 1, '#00ff41', 'Matrix', 30);
-    const glyph1 = calls.fillText[0]?.text;
-    globalThis.drawBrick(ctx, 1, 1, '#00ff41', 'Matrix', 30);
-    const glyph2 = calls.fillText[1]?.text;
-    assert.strictEqual(
-      glyph1,
-      glyph2,
-      'Matrix glyph must be deterministic for same inputs (no Math.random in render loop)'
-    );
-  });
-
-  it('Matrix glyph is chosen deterministically from brick inputs, not random', () => {
-    const { ctx, calls } = makeMockCtx();
-    // Different brick positions should produce deterministic glyphs
-    globalThis.drawBrick(ctx, 0, 0, '#00ff41', 'Matrix', 30);
-    const g1 = calls.fillText[0]?.text;
-    globalThis.drawBrick(ctx, 5, 5, '#00ff41', 'Matrix', 30);
-    const g2 = calls.fillText[1]?.text;
-    // Both must be valid glyphs from the descriptor
-    const m = globalThis.getRenderer('Matrix');
-    assert.ok(
-      m.glyphs.includes(g1),
-      'glyph1 must be from the Matrix glyphs array'
-    );
-    assert.ok(
-      m.glyphs.includes(g2),
-      'glyph2 must be from the Matrix glyphs array'
-    );
   });
 });
