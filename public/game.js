@@ -1,5 +1,6 @@
 import { createThemeRainBootstrap } from './theme-rain-bootstrap.js?v=0.2.0-beta.1';
 import { computePreviewFrameLayout, drawPreviewFrame } from './preview-frame.js?v=0.2.0-beta.1';
+import { bindIosDoubleTapGuard } from './ios-double-tap.js';
 
 const COLS = 10;
 const ROWS = 20;
@@ -674,25 +675,7 @@ if (previewCheckbox) {
 }
 
 // Prevent iOS double-tap zoom on fast consecutive taps for controls
-(function() {
-  let lastTouch = 0;
-  const THRESH = 300; // ms
-  function onTouchStart(e) {
-    try {
-      const now = Date.now();
-      if (now - lastTouch < THRESH) {
-        // Too-fast second tap: prevent default to stop double-tap zoom
-        e.preventDefault();
-      }
-      lastTouch = now;
-    } catch (err) {
-      // ignore
-    }
-  }
-  const selector = '#mobileControls, .btn, .pbtn, #startBtn, #goHomeBtn, #portraitRestartBtn, #btnLeft, #btnRight, #btnRotL, #btnRotR, #btnDrop';
-  const els = document.querySelectorAll(selector);
-  els.forEach((el) => el.addEventListener('touchstart', onTouchStart, { passive: false }));
-})();
+bindIosDoubleTapGuard(document.querySelectorAll('#mobileControls button:not(:disabled)'));
 
 function bindHoldButton(btn, onPressOnce, { repeatMs = 0 } = {}) {
   let interval = null;
