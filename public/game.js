@@ -1,4 +1,6 @@
 import { createThemeRainBootstrap } from './theme-rain-bootstrap.js?v=0.2.0-beta.1';
+import { computePreviewFrameLayout, drawPreviewFrame } from './preview-frame.js?v=0.2.0-beta.1';
+import { bindIosDoubleTapGuard } from './ios-double-tap.js';
 
 const COLS = 10;
 const ROWS = 20;
@@ -423,29 +425,28 @@ function draw() {
   })();
 
   if (previewEnabled && nextType) {
-    // Render preview in the top-right of the canvas (inside bounds)
     const shape = SHAPES[nextType];
     const small = Math.floor(CELL * 0.7);
-    const padding = 8;
-    // compute pixel base so preview sits inside canvas on the right
-    const previewWidth = Math.max(...shape.map((r) => r.length)) * small;
-    const previewHeight = shape.length * small;
-    const basePx = canvas.width - previewWidth - padding;
-    const basePy = padding;
+    const layout = computePreviewFrameLayout({
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+      shape,
+      cellSize: small,
+    });
+    const styles = getComputedStyle(document.documentElement);
+    const borderColor = styles.getPropertyValue('--border').trim() || '#283244';
+    const labelColor = styles.getPropertyValue('--fg').trim() || '#e6edf3';
+
+    drawPreviewFrame(ctx, layout, { borderColor, labelColor });
 
     for (let y = 0; y < shape.length; y++) {
       for (let x = 0; x < shape[y].length; x++) {
         if (!shape[y][x]) continue;
-        drawBrickAt(ctx, basePx + x * small, basePy + y * small, COLORS[nextType],
+        drawBrickAt(ctx, layout.pieceX + x * small, layout.pieceY + y * small, COLORS[nextType],
           (typeof window !== 'undefined' && window.ThemeModule && window.ThemeModule.getCurrentTheme)
             ? window.ThemeModule.getCurrentTheme() : 'Default', small);
       }
     }
-
-    // Draw label above preview
-    ctx.fillStyle = '#fff';
-    ctx.font = '12px sans-serif';
-    ctx.fillText('Next', basePx, basePy - 6);
   }
 }
 
@@ -674,25 +675,7 @@ if (previewCheckbox) {
 }
 
 // Prevent iOS double-tap zoom on fast consecutive taps for controls
-(function() {
-  let lastTouch = 0;
-  const THRESH = 300; // ms
-  function onTouchStart(e) {
-    try {
-      const now = Date.now();
-      if (now - lastTouch < THRESH) {
-        // Too-fast second tap: prevent default to stop double-tap zoom
-        e.preventDefault();
-      }
-      lastTouch = now;
-    } catch (err) {
-      // ignore
-    }
-  }
-  const selector = '#mobileControls, .btn, .pbtn, #startBtn, #goHomeBtn, #portraitRestartBtn, #btnLeft, #btnRight, #btnRotL, #btnRotR, #btnDrop';
-  const els = document.querySelectorAll(selector);
-  els.forEach((el) => el.addEventListener('touchstart', onTouchStart, { passive: false }));
-})();
+bindIosDoubleTapGuard(document.querySelectorAll('#mobileControls button:not(:disabled)'));
 
 function bindHoldButton(btn, onPressOnce, { repeatMs = 0 } = {}) {
   let interval = null;
