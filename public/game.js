@@ -2,6 +2,7 @@ import { createThemeRainBootstrap } from './theme-rain-bootstrap.js?v=0.2.0-beta
 import { computePreviewFrameLayout, drawPreviewFrame } from './preview-frame.js?v=0.2.0-beta.1';
 import { bindIosDoubleTapGuard } from './ios-double-tap.js';
 import { scoreDrop, scoreLineClear } from './game-scoring.js';
+import { createSeededPieceSource } from './game-piece-sequence.js';
 import { describeLevelChange, getProgression } from './game-progression.js';
 
 const COLS = 10;
@@ -144,13 +145,10 @@ function rotateCCW(matrix) {
   return res;
 }
 
-function randomBag() {
-  const keys = Object.keys(SHAPES);
-  for (let i = keys.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [keys[i], keys[j]] = [keys[j], keys[i]];
-  }
-  return keys;
+function createSoloSeed() {
+  const seed = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(seed);
+  return seed[0];
 }
 
 function loadFallbackScores() {
@@ -243,7 +241,7 @@ function showGameOver(message) {
 
 let board;
 let piece;
-let bag;
+let pieceSource;
 let score;
 let lines;
 let level;
@@ -292,9 +290,8 @@ function newPiece(type) {
   return { type, shape, x, y };
 }
 
-function nextFromBag() {
-  if (!bag || bag.length === 0) bag = randomBag();
-  return bag.pop();
+function nextFromSequence() {
+  return pieceSource.next();
 }
 
 function collide(b, p) {
@@ -354,17 +351,17 @@ function clearLines() {
 
 function spawn() {
   // Use prefetched nextType so we can preview it
-  if (!nextType) nextType = nextFromBag();
+  if (!nextType) nextType = nextFromSequence();
   piece = newPiece(nextType);
-  nextType = nextFromBag();
+  nextType = nextFromSequence();
   if (collide(board, piece)) {
     triggerGameOver('No space to spawn');
   }
 }
 
-function resetGameState() {
+function resetGameState(seed = createSoloSeed()) {
   board = makeBoard();
-  bag = randomBag();
+  pieceSource = createSeededPieceSource(seed);
   score = 0;
   lines = 0;
   const progression = getProgression(lines);
@@ -574,11 +571,11 @@ function triggerGameOver(reason) {
   void reason;
 }
 
-function startGame() {
+function startGame(seed = createSoloSeed()) {
   hideHome();
   hideOverlay(gameOverOverlay);
   hideOverlay(pauseMenu);
-  resetGameState();
+  resetGameState(seed);
   state = 'playing';
   pauseBtn.textContent = 'Pause';
   portraitPauseBtn.textContent = 'Pause';
