@@ -176,6 +176,16 @@ describe("normalizePlayerName", () => {
     assert.strictEqual(normalizePlayerName(name), name);
   });
 
+  it("rejects non-ASCII names: Ålex, 用户, Player١", () => {
+    const invalidNames = ["Ålex", "用户", "Player١"];
+    for (const name of invalidNames) {
+      assert.throws(() => normalizePlayerName(name), (err) => {
+        assert.strictEqual(err.code, "invalid_name");
+        return true;
+      }, `expected '${name}' to throw`);
+    }
+  });
+
   it("throws Error for invalid characters (e.g. @, #, digits beyond allowed)", () => {
     const invalidNames = ["Alice@", "Bob#", "Charlie!", "Test%"];
     for (const name of invalidNames) {

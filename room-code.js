@@ -55,7 +55,7 @@ function normalizePlayerName(name) {
   const collapsed = trimmed.replace(/[\t \r\n\f\v]+/g, " ");
 
   // Check allowed characters: ASCII letters, digits, space, underscore, hyphen
-  if (!/^[\p{L}\p{N} _-]+$/u.test(collapsed)) {
+  if (!/^[A-Za-z0-9 _-]+$/.test(collapsed)) {
     const err = new Error("invalid name");
     err.code = "invalid_name";
     throw err;
