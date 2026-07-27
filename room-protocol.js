@@ -1,7 +1,7 @@
 const ROOM_PROTOCOL_VERSION = 1;
 
 function createRoomProtocol({ registry, send }) {
-  if (typeof registry !== "object" || typeof send !== "function") {
+  if (typeof registry !== "object" || registry === null || typeof send !== "function" || typeof registry.createRoom !== "function" || typeof registry.joinRoom !== "function" || typeof registry.setPlayerReady !== "function") {
     const err = new Error("invalid_configuration");
     err.code = "invalid_configuration";
     throw err;
@@ -33,7 +33,7 @@ function createRoomProtocol({ registry, send }) {
 
   // Validate requestId: if present in message (not undefined), must be a bounded ASCII token
   function validateRequestId(requestId) {
-    if (requestId === undefined) return true;
+    if (requestId === undefined) return false;
     if (typeof requestId !== "string") return false;
     if (requestId.length === 0 || requestId.length > 64) return false;
     for (let i = 0; i < requestId.length; i++) {
@@ -100,16 +100,22 @@ function createRoomProtocol({ registry, send }) {
           sendError(connectionId, "already_in_room", null, requestId);
           return;
         }
-        const result = registry.createRoom({ name: msg.name });
-        sessions.set(connectionId, { playerId: result.playerId, room: result.room });
-        send(connectionId, {
-          type: "room_state",
-          protocolVersion: ROOM_PROTOCOL_VERSION,
-          requestId: requestId,
-          room: deepClone(result.room),
-          self: { playerId: result.playerId },
-          invitePath: `/?room=${result.room.code}`,
-        });
+        try {
+          const result = registry.createRoom({ name: msg.name });
+          sessions.set(connectionId, { playerId: result.playerId, room: result.room });
+          send(connectionId, {
+            type: "room_state",
+            protocolVersion: ROOM_PROTOCOL_VERSION,
+            requestId: requestId,
+            room: deepClone(result.room),
+            self: { playerId: result.playerId },
+            invitePath: `/?room=${result.room.code}`,
+          });
+        } catch (e) {
+          const extra = Number.isSafeInteger(e.currentSeq) ? { currentSeq: e.currentSeq } : null;
+          sendError(connectionId, e.code, extra, requestId);
+          return;
+        }
         break;
       }
 
@@ -127,10 +133,16 @@ function createRoomProtocol({ registry, send }) {
           sendError(connectionId, "invalid_request", null, requestId);
           return;
         }
-        const result = registry.joinRoom({ code: msg.code, name: msg.name });
-        sessions.set(connectionId, { playerId: result.playerId, room: result.room });
-        // Broadcast to all players in the room (including the joiner)
-        broadcastRoomState(result.room, connectionId, requestId);
+        try {
+          const result = registry.joinRoom({ code: msg.code, name: msg.name });
+          sessions.set(connectionId, { playerId: result.playerId, room: result.room });
+          // Broadcast to all players in the room (including the joiner)
+          broadcastRoomState(result.room, connectionId, requestId);
+        } catch (e) {
+          const extra = Number.isSafeInteger(e.currentSeq) ? { currentSeq: e.currentSeq } : null;
+          sendError(connectionId, e.code, extra, requestId);
+          return;
+        }
         break;
       }
 
