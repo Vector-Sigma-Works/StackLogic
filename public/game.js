@@ -1,16 +1,11 @@
 import { createThemeRainBootstrap } from './theme-rain-bootstrap.js?v=0.2.0-beta.1';
 import { computePreviewFrameLayout, drawPreviewFrame } from './preview-frame.js?v=0.2.0-beta.1';
 import { bindIosDoubleTapGuard } from './ios-double-tap.js';
+import { describeLevelChange, getProgression } from './game-progression.js';
 
 const COLS = 10;
 const ROWS = 20;
 const CELL = 30;
-
-// Difficulty tuning
-const LINES_PER_LEVEL = 10;
-const MIN_DROP_MS = 80;
-const START_DROP_MS = 800;
-const DROP_DECREASE_PER_LEVEL = 60;
 
 // High score tuning
 const HIGHSCORE_MAX = 10;
@@ -242,11 +237,6 @@ function showGameOver(message) {
   showOverlay(gameOverOverlay);
 }
 
-function computeDropInterval(level) {
-  const ms = START_DROP_MS - (level - 1) * DROP_DECREASE_PER_LEVEL;
-  return Math.max(MIN_DROP_MS, ms);
-}
-
 let board;
 let piece;
 let bag;
@@ -347,8 +337,12 @@ function clearLines() {
     const lineScores = [0, 100, 300, 500, 800];
     score += (lineScores[cleared] || cleared * 200) * level;
 
-    level = Math.floor(lines / LINES_PER_LEVEL) + 1;
-    dropInterval = computeDropInterval(level);
+    const previousLevel = level;
+    const progression = getProgression(lines);
+    level = progression.level;
+    dropInterval = progression.dropIntervalMs;
+    const levelUpMessage = describeLevelChange(previousLevel, level);
+    if (levelUpMessage) setStatus(levelUpMessage);
   }
 }
 
@@ -367,8 +361,9 @@ function resetGameState() {
   bag = randomBag();
   score = 0;
   lines = 0;
-  level = 1;
-  dropInterval = computeDropInterval(level);
+  const progression = getProgression(lines);
+  level = progression.level;
+  dropInterval = progression.dropIntervalMs;
   dropCounter = 0;
   lastTime = 0;
   nextType = null;
