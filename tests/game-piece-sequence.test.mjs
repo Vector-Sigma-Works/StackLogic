@@ -48,6 +48,16 @@ describe('server-seeded seven-bag piece sequence', () => {
     assert.equal(Object.isFrozen(resumed), true);
   });
 
+  it('resumes correctly at exact seven-bag boundaries', () => {
+    const full = take(createSeededPieceSource(0x12345678), 36);
+    for (const offset of [0, 7, 14, 21, 28]) {
+      const resumed = createSeededPieceSource(0x12345678, offset);
+      assert.equal(resumed.getIndex(), offset);
+      assert.equal(resumed.next(), full[offset]);
+      assert.equal(resumed.getIndex(), offset + 1);
+    }
+  });
+
   it('fails closed for malformed seeds and replay offsets', () => {
     for (const seed of [-1, 0x1_0000_0000, 1.5, Number.NaN, Number.POSITIVE_INFINITY, '1', null]) {
       assert.throws(() => createSeededPieceSource(seed), RangeError);
