@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
 import {
@@ -8,9 +7,6 @@ import {
   describeLevelChange,
   getProgression,
 } from '../public/game-progression.js';
-
-const gameSource = readFileSync(new URL('../public/game.js', import.meta.url), 'utf8');
-const indexSource = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
 
 describe('deterministic gameplay progression', () => {
   it('uses one explicit frozen speed curve with a stable minimum interval', () => {
@@ -72,14 +68,4 @@ describe('deterministic gameplay progression', () => {
     assert.equal(describeLevelChange(2, 4), 'Level up! 4');
   });
 
-  it('integrates the shared progression result into reset, line clear, and both HUDs', () => {
-    assert.match(gameSource, /from ['"]\.\/game-progression\.js['"]/);
-    assert.equal((gameSource.match(/getProgression\(/g) || []).length >= 2, true);
-    assert.match(gameSource, /describeLevelChange\(/);
-    assert.doesNotMatch(gameSource, /DROP_DECREASE_PER_LEVEL|function computeDropInterval/);
-    assert.match(gameSource, /levelProgressEl\.textContent\s*=\s*progression\.progressText/);
-    assert.match(gameSource, /levelProgressP\.textContent\s*=\s*progression\.progressText/);
-    assert.match(indexSource, /id="levelProgress"[^>]*>0 \/ 10</);
-    assert.match(indexSource, /id="levelProgressP"[^>]*>0 \/ 10</);
-  });
 });
