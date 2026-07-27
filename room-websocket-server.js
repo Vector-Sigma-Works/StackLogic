@@ -32,6 +32,8 @@ function createRoomWebSocketServer({ server, registry, allowedOrigin, maxPayload
   // Track all owned sockets and their connection IDs
   const clients = new Map(); // connectionId -> WebSocket
 
+  let closePromise = null;
+
   const upgradeListener = (request, socket, head) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
     const pathname = url.pathname;
@@ -82,6 +84,11 @@ function createRoomWebSocketServer({ server, registry, allowedOrigin, maxPayload
       return;
     }
 
+    if (clients.has(connectionId)) {
+      ws.close(1011, "internal_error");
+      return;
+    }
+
     clients.set(connectionId, ws);
 
     // Register with protocol
@@ -126,27 +133,35 @@ function createRoomWebSocketServer({ server, registry, allowedOrigin, maxPayload
   // Return async idempotent close
   return {
     async close() {
-      // Remove only our owned upgrade listener
-      server.removeListener("upgrade", upgradeListener);
-
-      // Terminate all client sockets
-      for (const [connectionId, ws] of clients) {
-        try {
-          ws.terminate();
-        } catch (e) {
-          // ignore
-        }
-        protocol.disconnect(connectionId);
+      if (closePromise) {
+        return closePromise;
       }
-      clients.clear();
 
-      // Close only the WSS, never the HTTP server
-      await new Promise((resolve, reject) => {
-        wss.close((err) => {
-          if (err) reject(err);
-          else resolve();
+      closePromise = (async () => {
+        // Remove only our owned upgrade listener
+        server.removeListener("upgrade", upgradeListener);
+
+        // Terminate all client sockets
+        for (const [connectionId, ws] of clients) {
+          try {
+            ws.terminate();
+          } catch (e) {
+            // ignore
+          }
+          protocol.disconnect(connectionId);
+        }
+        clients.clear();
+
+        // Close only the WSS, never the HTTP server
+        await new Promise((resolve, reject) => {
+          wss.close((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
         });
-      });
+      })();
+
+      return closePromise;
     },
   };
 }
