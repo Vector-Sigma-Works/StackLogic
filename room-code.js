@@ -1,6 +1,8 @@
+import { randomBytes } from "node:crypto";
+
 const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-function generateRoomCode(randomBytesFn) {
+function generateRoomCode(randomBytesFn = randomBytes) {
   if (typeof randomBytesFn !== "function") {
     const err = new Error("invalid entropy");
     err.code = "invalid_entropy";

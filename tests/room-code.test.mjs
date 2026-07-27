@@ -20,6 +20,14 @@ describe("generateRoomCode", () => {
     return (n) => new Uint8Array(bytes.slice(0, n));
   }
 
+  it("uses default entropy and returns six chars from ROOM_CODE_ALPHABET", () => {
+    const code = generateRoomCode();
+    assert.strictEqual(code.length, 6);
+    for (const ch of code) {
+      assert.ok(ROOM_CODE_ALPHABET.includes(ch), `char '${ch}' not in alphabet`);
+    }
+  });
+
   it("returns exactly 6 characters from the alphabet", () => {
     const rb = makeRandomBytes([1, 2, 3, 4, 5, 6]);
     const code = generateRoomCode(rb);
