@@ -6,6 +6,16 @@ import { createRoomRegistry } from "../room-registry.js";
 import { createRoomWebSocketServer } from "../room-websocket-server.js";
 
 const ALLOWED_ORIGIN = "https://stacklogic-dev.game.lan";
+const SOCKET_EXPECTATION_TIMEOUT_MS = 1_000;
+
+function withinSocketDeadline(promise, label) {
+  let timer;
+  const deadline = new Promise((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(`socket_timeout:${label}`)), SOCKET_EXPECTATION_TIMEOUT_MS);
+    timer.unref?.();
+  });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+}
 
 function sequence(values) {
   let index = 0;
@@ -13,7 +23,7 @@ function sequence(values) {
 }
 
 function nextMessage(socket) {
-  return new Promise((resolve, reject) => {
+  return withinSocketDeadline(new Promise((resolve, reject) => {
     socket.once("message", (data, isBinary) => {
       try {
         assert.equal(isBinary, false);
@@ -23,11 +33,14 @@ function nextMessage(socket) {
       }
     });
     socket.once("error", reject);
-  });
+  }), "message");
 }
 
 function nextClose(socket) {
-  return new Promise((resolve) => socket.once("close", (code) => resolve(code)));
+  return withinSocketDeadline(
+    new Promise((resolve) => socket.once("close", (code) => resolve(code))),
+    "close",
+  );
 }
 
 async function startHarness({ maxPayloadBytes = 4096 } = {}) {
@@ -66,17 +79,14 @@ function connect(url, { origin = ALLOWED_ORIGIN, path = "/ws" } = {}) {
 }
 
 function rejectedStatus(url, { origin = ALLOWED_ORIGIN, path = "/ws" } = {}) {
-  return new Promise((resolve, reject) => {
+  return withinSocketDeadline(new Promise((resolve, reject) => {
     const socket = new WebSocket(`${url}${path}`, { headers: origin === null ? {} : { Origin: origin } });
     socket.once("unexpected-response", (_request, response) => {
       response.resume();
       resolve(response.statusCode);
     });
-    socket.once("error", (error) => {
-      if (error.message.includes("Unexpected server response")) return;
-      reject(error);
-    });
-  });
+    socket.once("error", reject);
+  }), "upgrade_rejection");
 }
 
 describe("room WebSocket server", () => {
