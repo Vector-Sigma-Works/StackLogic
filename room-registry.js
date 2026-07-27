@@ -4,11 +4,11 @@ import { generateRoomCode, normalizePlayerName, ROOM_CODE_ALPHABET } from "./roo
 function createRoomRegistry({
   generateCode = generateRoomCode,
   createPlayerId = randomUUID,
-  maxCodeAttempts = 32,
+  maxCodeAttempts: attemptLimit = 32,
 } = {}) {
   void generateCode;
   void createPlayerId;
-  void maxCodeAttempts;
+  void attemptLimit;
   void normalizePlayerName;
   void ROOM_CODE_ALPHABET;
   throw new Error("room registry not implemented");
