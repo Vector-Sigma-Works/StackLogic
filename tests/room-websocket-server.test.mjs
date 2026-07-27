@@ -43,7 +43,7 @@ function nextClose(socket) {
   );
 }
 
-async function startHarness({ maxPayloadBytes = 4096 } = {}) {
+async function startHarness({ maxPayloadBytes = 4096, connectionIds = ["c1", "c2", "c3"] } = {}) {
   const registry = createRoomRegistry({
     generateCode: () => "ABC234",
     createPlayerId: sequence(["p1", "p2"]),
@@ -57,7 +57,7 @@ async function startHarness({ maxPayloadBytes = 4096 } = {}) {
     registry,
     allowedOrigin: ALLOWED_ORIGIN,
     maxPayloadBytes,
-    createConnectionId: sequence(["c1", "c2", "c3"]),
+    createConnectionId: sequence(connectionIds),
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address();
@@ -65,6 +65,8 @@ async function startHarness({ maxPayloadBytes = 4096 } = {}) {
   return {
     url: `ws://127.0.0.1:${port}`,
     registry,
+    server,
+    transport,
     async close(sockets = []) {
       for (const socket of sockets) socket.terminate();
       await transport.close();
@@ -151,6 +153,39 @@ describe("room WebSocket server", () => {
       assert.equal(await closed, 1003);
     } finally {
       await harness.close([client.socket]);
+    }
+  });
+
+  it("rejects duplicate generated IDs without evicting the original connection", async () => {
+    const harness = await startHarness({ connectionIds: ["same", "same"] });
+    const first = connect(harness.url);
+    const sockets = [first.socket];
+    try {
+      await first.connected;
+
+      const duplicate = new WebSocket(`${harness.url}/ws`, { headers: { Origin: ALLOWED_ORIGIN } });
+      sockets.push(duplicate);
+      assert.equal(await nextClose(duplicate), 1011);
+
+      const state = nextMessage(first.socket);
+      first.socket.send(JSON.stringify({ type: "create_room", requestId: "still-owned", name: "Alpha" }));
+      assert.equal((await state).requestId, "still-owned");
+    } finally {
+      await harness.close(sockets);
+    }
+  });
+
+  it("closes idempotently and removes only its own upgrade listener", async () => {
+    const harness = await startHarness();
+    const unrelatedUpgradeListener = () => {};
+    harness.server.on("upgrade", unrelatedUpgradeListener);
+    try {
+      await harness.transport.close();
+      await harness.transport.close();
+      assert.deepEqual(harness.server.listeners("upgrade"), [unrelatedUpgradeListener]);
+    } finally {
+      harness.server.removeListener("upgrade", unrelatedUpgradeListener);
+      await new Promise((resolve, reject) => harness.server.close((error) => error ? reject(error) : resolve()));
     }
   });
 
