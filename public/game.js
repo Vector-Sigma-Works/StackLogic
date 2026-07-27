@@ -26,6 +26,9 @@ const scoreP = document.getElementById('scoreP');
 const levelP = document.getElementById('levelP');
 const statusMobile = document.getElementById('statusMobile');
 
+const levelProgressEl = document.getElementById('levelProgress');
+const levelProgressP = document.getElementById('levelProgressP');
+
 const titleOverlay = document.getElementById('title');
 const startBtn = document.getElementById('startBtn');
 const highScoresEl = document.getElementById('highScores');
@@ -250,6 +253,8 @@ let nextType = null;
 
 let state; // 'home' | 'playing' | 'paused' | 'gameover'
 
+let levelProgressText;
+
 const music = new Audio('assets/stacklogic.mp3');
 music.loop = true;
 
@@ -341,6 +346,7 @@ function clearLines() {
     const progression = getProgression(lines);
     level = progression.level;
     dropInterval = progression.dropIntervalMs;
+    levelProgressText = progression.progressText;
     const levelUpMessage = describeLevelChange(previousLevel, level);
     if (levelUpMessage) setStatus(levelUpMessage);
   }
@@ -364,6 +370,7 @@ function resetGameState() {
   const progression = getProgression(lines);
   level = progression.level;
   dropInterval = progression.dropIntervalMs;
+  levelProgressText = progression.progressText;
   dropCounter = 0;
   lastTime = 0;
   nextType = null;
@@ -378,6 +385,8 @@ function updateHUD() {
   levelEl.textContent = String(level);
   scoreP.textContent = String(score);
   levelP.textContent = String(level);
+  levelProgressEl.textContent = levelProgressText;
+  levelProgressP.textContent = levelProgressText;
 }
 
 function drawCell(x, y, color) {
