@@ -105,6 +105,88 @@ function createRoomRegistry({
       }
       return null;
     },
+
+    joinRoom({ code, name }) {
+      // Normalize and validate room code
+      if (code === null || code === undefined || typeof code !== "string") {
+        const err = new Error("invalid_room_code");
+        err.code = "invalid_room_code";
+        throw err;
+      }
+      const trimmedCode = code.trim().toUpperCase();
+      if (!isValidRoomCode(trimmedCode)) {
+        const err = new Error("invalid_room_code");
+        err.code = "invalid_room_code";
+        throw err;
+      }
+
+      // Look up room by normalized (lowercase) key
+      const lowerKey = trimmedCode.toLowerCase();
+      let targetRoom = null;
+      for (const [key, room] of rooms) {
+        if (key.toLowerCase() === lowerKey) {
+          targetRoom = room;
+          break;
+        }
+      }
+      if (!targetRoom) {
+        const err = new Error("room_not_found");
+        err.code = "room_not_found";
+        throw err;
+      }
+
+      // Normalize name
+      const normalizedName = normalizePlayerName(name);
+
+      // Check for duplicate normalized names (case-insensitive) in the room
+      const lowerNormalizedName = normalizedName.toLowerCase();
+      for (const player of targetRoom.players) {
+        if (player.name.toLowerCase() === lowerNormalizedName) {
+          const err = new Error("name_taken");
+          err.code = "name_taken";
+          throw err;
+        }
+      }
+
+      // Enforce two-player cap before ID allocation
+      if (targetRoom.players.length >= 2) {
+        const err = new Error("room_full");
+        err.code = "room_full";
+        throw err;
+      }
+
+      // Allocate player ID
+      let playerId;
+      try {
+        playerId = createPlayerId();
+      } catch (e) {
+        const err = new Error("invalid_player_id");
+        err.code = "invalid_player_id";
+        throw err;
+      }
+      if (typeof playerId !== "string" || !playerId.trim()) {
+        const err = new Error("invalid_player_id");
+        err.code = "invalid_player_id";
+        throw err;
+      }
+      // Ensure unique within room
+      for (const player of targetRoom.players) {
+        if (player.id === playerId) {
+          const err = new Error("invalid_player_id");
+          err.code = "invalid_player_id";
+          throw err;
+        }
+      }
+
+      // Append ready:false player and increment seq
+      targetRoom.seq += 1;
+      targetRoom.players.push({ id: playerId, name: normalizedName, ready: false });
+
+      return {
+        playerId,
+        room: deepClone(targetRoom),
+      };
+    },
   };
 }
 
