@@ -1,6 +1,7 @@
 import { createThemeRainBootstrap } from './theme-rain-bootstrap.js?v=0.2.0-beta.1';
 import { computePreviewFrameLayout, drawPreviewFrame } from './preview-frame.js?v=0.2.0-beta.1';
 import { bindIosDoubleTapGuard } from './ios-double-tap.js';
+import { scoreDrop, scoreLineClear } from './game-scoring.js';
 import { describeLevelChange, getProgression } from './game-progression.js';
 
 const COLS = 10;
@@ -339,8 +340,7 @@ function clearLines() {
 
   if (cleared > 0) {
     lines += cleared;
-    const lineScores = [0, 100, 300, 500, 800];
-    score += (lineScores[cleared] || cleared * 200) * level;
+    score += scoreLineClear(cleared, level);
 
     const previousLevel = level;
     const progression = getProgression(lines);
@@ -473,7 +473,7 @@ function softDropOnce() {
     piece.y--;
     lockPiece();
   } else {
-    score += 1;
+    score += scoreDrop('soft', 1);
     updateHUD();
   }
   dropCounter = 0;
@@ -490,7 +490,7 @@ function hardDrop() {
     }
     dist++;
   }
-  score += dist * 2;
+  score += scoreDrop('hard', dist);
   lockPiece();
 }
 
