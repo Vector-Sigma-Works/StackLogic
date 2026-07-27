@@ -27,7 +27,7 @@ describe('progression game-loop integration', () => {
   });
 
   it('initializes level and drop interval from the shared progression result', () => {
-    const resetStart = gameSource.indexOf('function resetGameState()');
+    const resetStart = gameSource.indexOf('function resetGameState(');
     const resetEnd = gameSource.indexOf('\n}\n\nfunction updateHUD()', resetStart);
     assert.notEqual(resetStart, -1);
     assert.notEqual(resetEnd, -1);
