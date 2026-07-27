@@ -2,11 +2,11 @@
 
 # StackLogic
 
-**Version:** v0.2.0-beta.1
+**Version:** v0.3.0-beta.1
 
 StackLogic is a fast, browser-based falling-block arcade puzzler with responsive keyboard and touch controls, persistent local scores, and four visual themes that can be changed before play or while paused.
 
-**[Play StackLogic](https://vector-sigma-works.github.io/StackLogic/)** · **[Latest release](https://github.com/Vector-Sigma-Works/StackLogic/releases/tag/v0.2.0-beta.1)** · **[Changelog](CHANGELOG.md)** · **[Backlog](BACKLOG.md)**
+**[Play StackLogic](https://vector-sigma-works.github.io/StackLogic/)** · **[Latest release](https://github.com/Vector-Sigma-Works/StackLogic/releases/tag/v0.3.0-beta.1)** · **[Changelog](CHANGELOG.md)** · **[Backlog](BACKLOG.md)**
 
 ## Screenshots
 
@@ -24,6 +24,7 @@ StackLogic is a fast, browser-based falling-block arcade puzzler with responsive
 - **Live theme switching:** choose a theme on the title screen or change it while paused without restarting the game.
 - **Responsive input:** keyboard controls on desktop and on-screen controls for touch and coarse-pointer devices, including wide iPad-class layouts.
 - **Accessible motion and navigation:** Matrix rain follows live reduced-motion preferences; theme controls support Arrow keys and Home/End with roving focus.
+- **Deterministic game core:** level progression, competitive scoring, and seeded seven-bag piece order are reproducible and independently tested.
 - **Local play data:** optional next-piece preview and local high scores work without an account.
 - **Static deployment:** the production game runs on GitHub Pages; the Express server is provided for local development.
 
@@ -56,7 +57,7 @@ Open http://localhost:3000.
 npm test
 ```
 
-The test suite covers release metadata, theme rendering and accessibility, Matrix rain lifecycle and cleanup, responsive controls, and GitHub Pages workflow boundaries.
+The test suite covers deterministic progression, scoring, seeded piece sequences, release metadata, theme rendering and accessibility, Matrix rain lifecycle and cleanup, responsive controls, and GitHub Pages workflow boundaries.
 
 ## Project layout
 

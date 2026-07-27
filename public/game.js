@@ -1,16 +1,13 @@
-import { createThemeRainBootstrap } from './theme-rain-bootstrap.js?v=0.2.0-beta.1';
-import { computePreviewFrameLayout, drawPreviewFrame } from './preview-frame.js?v=0.2.0-beta.1';
+import { createThemeRainBootstrap } from './theme-rain-bootstrap.js?v=0.3.0-beta.1';
+import { computePreviewFrameLayout, drawPreviewFrame } from './preview-frame.js?v=0.3.0-beta.1';
 import { bindIosDoubleTapGuard } from './ios-double-tap.js';
+import { scoreDrop, scoreLineClear } from './game-scoring.js';
+import { createSeededPieceSource } from './game-piece-sequence.js';
+import { describeLevelChange, getProgression } from './game-progression.js';
 
 const COLS = 10;
 const ROWS = 20;
 const CELL = 30;
-
-// Difficulty tuning
-const LINES_PER_LEVEL = 10;
-const MIN_DROP_MS = 80;
-const START_DROP_MS = 800;
-const DROP_DECREASE_PER_LEVEL = 60;
 
 // High score tuning
 const HIGHSCORE_MAX = 10;
@@ -30,6 +27,9 @@ const statusEl = document.getElementById('status');
 const scoreP = document.getElementById('scoreP');
 const levelP = document.getElementById('levelP');
 const statusMobile = document.getElementById('statusMobile');
+
+const levelProgressEl = document.getElementById('levelProgress');
+const levelProgressP = document.getElementById('levelProgressP');
 
 const titleOverlay = document.getElementById('title');
 const startBtn = document.getElementById('startBtn');
@@ -145,13 +145,10 @@ function rotateCCW(matrix) {
   return res;
 }
 
-function randomBag() {
-  const keys = Object.keys(SHAPES);
-  for (let i = keys.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [keys[i], keys[j]] = [keys[j], keys[i]];
-  }
-  return keys;
+function createSoloSeed() {
+  const seed = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(seed);
+  return seed[0];
 }
 
 function loadFallbackScores() {
@@ -242,14 +239,9 @@ function showGameOver(message) {
   showOverlay(gameOverOverlay);
 }
 
-function computeDropInterval(level) {
-  const ms = START_DROP_MS - (level - 1) * DROP_DECREASE_PER_LEVEL;
-  return Math.max(MIN_DROP_MS, ms);
-}
-
 let board;
 let piece;
-let bag;
+let pieceSource;
 let score;
 let lines;
 let level;
@@ -259,6 +251,8 @@ let lastTime;
 let nextType = null;
 
 let state; // 'home' | 'playing' | 'paused' | 'gameover'
+
+let levelProgressText;
 
 const music = new Audio('assets/stacklogic.mp3');
 music.loop = true;
@@ -296,9 +290,8 @@ function newPiece(type) {
   return { type, shape, x, y };
 }
 
-function nextFromBag() {
-  if (!bag || bag.length === 0) bag = randomBag();
-  return bag.pop();
+function nextFromSequence() {
+  return pieceSource.next();
 }
 
 function collide(b, p) {
@@ -344,31 +337,37 @@ function clearLines() {
 
   if (cleared > 0) {
     lines += cleared;
-    const lineScores = [0, 100, 300, 500, 800];
-    score += (lineScores[cleared] || cleared * 200) * level;
+    score += scoreLineClear(cleared, level);
 
-    level = Math.floor(lines / LINES_PER_LEVEL) + 1;
-    dropInterval = computeDropInterval(level);
+    const previousLevel = level;
+    const progression = getProgression(lines);
+    level = progression.level;
+    dropInterval = progression.dropIntervalMs;
+    levelProgressText = progression.progressText;
+    const levelUpMessage = describeLevelChange(previousLevel, level);
+    if (levelUpMessage) setStatus(levelUpMessage);
   }
 }
 
 function spawn() {
   // Use prefetched nextType so we can preview it
-  if (!nextType) nextType = nextFromBag();
+  if (!nextType) nextType = nextFromSequence();
   piece = newPiece(nextType);
-  nextType = nextFromBag();
+  nextType = nextFromSequence();
   if (collide(board, piece)) {
     triggerGameOver('No space to spawn');
   }
 }
 
-function resetGameState() {
+function resetGameState(seed = createSoloSeed()) {
   board = makeBoard();
-  bag = randomBag();
+  pieceSource = createSeededPieceSource(seed);
   score = 0;
   lines = 0;
-  level = 1;
-  dropInterval = computeDropInterval(level);
+  const progression = getProgression(lines);
+  level = progression.level;
+  dropInterval = progression.dropIntervalMs;
+  levelProgressText = progression.progressText;
   dropCounter = 0;
   lastTime = 0;
   nextType = null;
@@ -383,6 +382,8 @@ function updateHUD() {
   levelEl.textContent = String(level);
   scoreP.textContent = String(score);
   levelP.textContent = String(level);
+  levelProgressEl.textContent = levelProgressText;
+  levelProgressP.textContent = levelProgressText;
 }
 
 function drawCell(x, y, color) {
@@ -469,7 +470,7 @@ function softDropOnce() {
     piece.y--;
     lockPiece();
   } else {
-    score += 1;
+    score += scoreDrop('soft', 1);
     updateHUD();
   }
   dropCounter = 0;
@@ -486,7 +487,7 @@ function hardDrop() {
     }
     dist++;
   }
-  score += dist * 2;
+  score += scoreDrop('hard', dist);
   lockPiece();
 }
 
@@ -570,11 +571,11 @@ function triggerGameOver(reason) {
   void reason;
 }
 
-function startGame() {
+function startGame(seed = createSoloSeed()) {
   hideHome();
   hideOverlay(gameOverOverlay);
   hideOverlay(pauseMenu);
-  resetGameState();
+  resetGameState(seed);
   state = 'playing';
   pauseBtn.textContent = 'Pause';
   portraitPauseBtn.textContent = 'Pause';

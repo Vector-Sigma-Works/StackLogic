@@ -1,7 +1,7 @@
 // Browser-only dependency wiring for the accepted Matrix rain adapter.
 // Importing this module has no DOM, listener, or animation side effects.
 
-import { createRainBrowserAdapter } from './theme-rain-adapter.js?v=0.2.0-beta.1';
+import { createRainBrowserAdapter } from './theme-rain-adapter.js?v=0.3.0-beta.1';
 
 export function createThemeRainBootstrap(root) {
   const document = root.document;
