@@ -4,6 +4,21 @@ All notable changes to this project are recorded here.
 
 ## [Unreleased]
 
+## [0.3.0-beta.1] - 2026-07-26
+
+### Added
+- Added a deterministic level and drop-speed progression curve with visible progress toward the next level.
+- Added standard competitive line-clear, soft-drop, and hard-drop scoring rules.
+- Added reproducible seeded seven-bag piece sequences with bounded replay offsets for future reconnect recovery.
+- Added an explicit game-start seed seam for future server-issued multiplayer seeds while retaining cryptographically seeded solo play.
+
+### Changed
+- Current and preview pieces now draw from one deterministic piece-sequence authority.
+- Gameplay progression and scoring now use shared, independently tested modules.
+
+### Fixed
+- Preserved replay correctness at exact seven-piece bag boundaries.
+
 ## [0.2.0-beta.1] - 2026-07-25
 
 ### Added

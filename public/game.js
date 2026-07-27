@@ -1,5 +1,5 @@
-import { createThemeRainBootstrap } from './theme-rain-bootstrap.js?v=0.2.0-beta.1';
-import { computePreviewFrameLayout, drawPreviewFrame } from './preview-frame.js?v=0.2.0-beta.1';
+import { createThemeRainBootstrap } from './theme-rain-bootstrap.js?v=0.3.0-beta.1';
+import { computePreviewFrameLayout, drawPreviewFrame } from './preview-frame.js?v=0.3.0-beta.1';
 import { bindIosDoubleTapGuard } from './ios-double-tap.js';
 import { scoreDrop, scoreLineClear } from './game-scoring.js';
 import { createSeededPieceSource } from './game-piece-sequence.js';

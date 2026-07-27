@@ -1,7 +1,7 @@
 // Matrix rain browser adapter — wraps the accepted lifecycle controller.
 // Exports createRainBrowserAdapter(deps) and a frozen bounded RAIN_GLYPHS constant.
 
-import { createRainController } from './theme-rain-controller.js?v=0.2.0-beta.1';
+import { createRainController } from './theme-rain-controller.js?v=0.3.0-beta.1';
 
 export const RAIN_GLYPHS = Object.freeze([
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',

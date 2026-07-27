@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { describe, it } from 'node:test';
 
-const RELEASE = '0.2.0-beta.1';
+const RELEASE = '0.3.0-beta.1';
 const [indexHtml, gameJs, bootstrapJs, adapterJs, readme, changelog, packageJson, packageLock] = await Promise.all([
   readFile(new URL('../public/index.html', import.meta.url), 'utf8'),
   readFile(new URL('../public/game.js', import.meta.url), 'utf8'),
@@ -15,15 +15,15 @@ const [indexHtml, gameJs, bootstrapJs, adapterJs, readme, changelog, packageJson
 ]);
 
 describe('release metadata', () => {
-  it('uses one v0.2.0-beta.1 version across package metadata and README', () => {
+  it('uses one v0.3.0-beta.1 version across package metadata and README', () => {
     assert.equal(packageJson.version, RELEASE);
     assert.equal(packageLock.version, RELEASE);
     assert.equal(packageLock.packages[''].version, RELEASE);
-    assert.match(readme, /\*\*Version:\*\* v0\.2\.0-beta\.1/);
+    assert.match(readme, /\*\*Version:\*\* v0\.3\.0-beta\.1/);
   });
 
   it('publishes a machine-readable release marker', () => {
-    assert.match(indexHtml, /<meta name="stacklogic-version" content="0\.2\.0-beta\.1"\s*\/?>/);
+    assert.match(indexHtml, /<meta name="stacklogic-version" content="0\.3\.0-beta\.1"\s*\/?>/);
   });
 
   it('cache-busts every shipped CSS and JavaScript entry asset with the release version', () => {
@@ -31,13 +31,14 @@ describe('release metadata', () => {
       assert.match(indexHtml, new RegExp(`${asset.replace('.', '\\.') }\\?v=${RELEASE.replaceAll('.', '\\.').replace('-', '\\-')}`));
     }
 
-    assert.match(gameJs, /theme-rain-bootstrap\.js\?v=0\.2\.0-beta\.1/);
-    assert.match(bootstrapJs, /theme-rain-adapter\.js\?v=0\.2\.0-beta\.1/);
-    assert.match(adapterJs, /theme-rain-controller\.js\?v=0\.2\.0-beta\.1/);
+    assert.match(gameJs, /theme-rain-bootstrap\.js\?v=0\.3\.0-beta\.1/);
+    assert.match(bootstrapJs, /theme-rain-adapter\.js\?v=0\.3\.0-beta\.1/);
+    assert.match(adapterJs, /theme-rain-controller\.js\?v=0\.3\.0-beta\.1/);
   });
 
-  it('documents both beta releases and retains an Unreleased section', () => {
+  it('documents all beta releases and retains an Unreleased section', () => {
     assert.match(changelog, /## \[Unreleased\]/);
+    assert.match(changelog, /## \[0\.3\.0-beta\.1\] - 2026-07-26/);
     assert.match(changelog, /## \[0\.2\.0-beta\.1\] - 2026-07-25/);
     assert.match(changelog, /## \[0\.1\.0-beta\.1\] - 2026-02-08/);
   });
