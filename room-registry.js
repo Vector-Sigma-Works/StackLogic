@@ -21,8 +21,7 @@ function createRoomRegistry({
 
   function isValidRoomCode(code) {
     if (typeof code !== "string" || code.length !== 6) return false;
-    const upper = code.toUpperCase();
-    for (const ch of upper) {
+    for (const ch of code) {
       if (!ROOM_CODE_ALPHABET.includes(ch)) return false;
     }
     return true;
@@ -69,7 +68,7 @@ function createRoomRegistry({
         }
         const room = {
           code,
-          seq: rooms.size + 1,
+          seq: 1,
           players: [{ id: playerId, name: normalizedName, ready: false }],
         };
         rooms.set(code, room);
@@ -92,7 +91,7 @@ function createRoomRegistry({
         err.code = "invalid_room_code";
         throw err;
       }
-      const trimmed = code.trim();
+      const trimmed = code.trim().toUpperCase();
       if (!isValidRoomCode(trimmed)) {
         const err = new Error("invalid_room_code");
         err.code = "invalid_room_code";
