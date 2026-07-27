@@ -33,6 +33,21 @@ describe("room registry creation authority", () => {
     });
   });
 
+  it("starts every independently created room at sequence one", () => {
+    const codes = sequence(["AAA222", "BBB333"]);
+    const ids = sequence(["p1", "p2"]);
+    const registry = createRoomRegistry({ generateCode: codes, createPlayerId: ids });
+
+    assert.equal(registry.createRoom({ name: "One" }).room.seq, 1);
+    assert.equal(registry.createRoom({ name: "Two" }).room.seq, 1);
+  });
+
+  it("rejects lowercase generated codes instead of silently normalizing them", () => {
+    const registry = createRoomRegistry({ generateCode: () => "abc234", createPlayerId: () => "p1" });
+    expectCode("invalid_room_code", () => registry.createRoom({ name: "Player" }));
+    assert.equal(registry.getRoom("ABC234"), null);
+  });
+
   it("accepts only bounded integer maxCodeAttempts", () => {
     assert.ok(createRoomRegistry({ maxCodeAttempts: 1 }));
     assert.ok(createRoomRegistry({ maxCodeAttempts: 128 }));
