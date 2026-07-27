@@ -123,6 +123,31 @@ describe("room protocol", () => {
     assert.deepEqual(sent.map((entry) => entry.message.code), ["already_in_room", "not_in_room"]);
   });
 
+  it("converts create and join registry failures into typed responses", () => {
+    const { protocol, sent } = harness();
+    protocol.connect("c1");
+    protocol.connect("c2");
+    sent.length = 0;
+
+    assert.doesNotThrow(() => protocol.receive("c1", request("create_room", "r1", { name: "Ålex" })));
+    assert.doesNotThrow(() => protocol.receive("c2", request("join_room", "r2", { code: "ZZZ999", name: "Beta" })));
+    assert.deepEqual(sent.map((entry) => entry.message), [
+      { type: "error", protocolVersion: 1, requestId: "r1", code: "invalid_name" },
+      { type: "error", protocolVersion: 1, requestId: "r2", code: "room_not_found" },
+    ]);
+  });
+
+  it("requires every command to carry a request ID", () => {
+    const { protocol, sent } = harness();
+    protocol.connect("c1");
+    sent.length = 0;
+    protocol.receive("c1", JSON.stringify({ type: "create_room", name: "Alpha" }));
+    assert.deepEqual(sent, [{
+      connectionId: "c1",
+      message: { type: "error", protocolVersion: 1, requestId: null, code: "invalid_request_id" },
+    }]);
+  });
+
   it("fails closed for malformed JSON, message shapes, request IDs, and types", () => {
     const { protocol, sent } = harness();
     protocol.connect("c1");
@@ -156,6 +181,22 @@ describe("room protocol", () => {
     protocol.disconnect("c1");
     assert.equal(registry.getRoom("ABC234").players[0].name, "Alpha");
     assert.doesNotThrow(() => protocol.connect("c1"));
+  });
+
+  it("rejects malformed protocol dependencies at construction", () => {
+    const send = () => {};
+    const completeRegistry = {
+      createRoom() {},
+      joinRoom() {},
+      setPlayerReady() {},
+    };
+    for (const registry of [null, {}, { createRoom() {} }]) {
+      assert.throws(() => createRoomProtocol({ registry, send }), (error) => error?.code === "invalid_configuration");
+    }
+    assert.throws(
+      () => createRoomProtocol({ registry: completeRegistry, send: null }),
+      (error) => error?.code === "invalid_configuration",
+    );
   });
 
   it("rejects malformed or duplicate connection identities", () => {
