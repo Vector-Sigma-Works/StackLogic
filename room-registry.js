@@ -187,6 +187,95 @@ function createRoomRegistry({
         room: deepClone(targetRoom),
       };
     },
+
+    setPlayerReady({ code, playerId, ready, expectedSeq }) {
+      // 1. Normalize + validate room code
+      if (code === null || code === undefined || typeof code !== "string") {
+        const err = new Error("invalid_room_code");
+        err.code = "invalid_room_code";
+        throw err;
+      }
+      const trimmedCode = code.trim().toUpperCase();
+      if (!isValidRoomCode(trimmedCode)) {
+        const err = new Error("invalid_room_code");
+        err.code = "invalid_room_code";
+        throw err;
+      }
+
+      // 2. Look up room
+      const lowerKey = trimmedCode.toLowerCase();
+      let targetRoom = null;
+      for (const [key, room] of rooms) {
+        if (key.toLowerCase() === lowerKey) {
+          targetRoom = room;
+          break;
+        }
+      }
+      if (!targetRoom) {
+        const err = new Error("room_not_found");
+        err.code = "room_not_found";
+        throw err;
+      }
+
+      // 3. Validate ready is a boolean
+      if (typeof ready !== "boolean") {
+        const err = new Error("invalid_ready");
+        err.code = "invalid_ready";
+        throw err;
+      }
+
+      // 4. Validate expectedSeq is a safe integer >= 1
+      if (
+        typeof expectedSeq !== "number" ||
+        !Number.isInteger(expectedSeq) ||
+        expectedSeq < 1 ||
+        expectedSeq > Number.MAX_SAFE_INTEGER
+      ) {
+        const err = new Error("invalid_sequence");
+        err.code = "invalid_sequence";
+        throw err;
+      }
+
+      // 5. Compare expectedSeq to room.seq — stale_state if mismatch
+      if (expectedSeq !== targetRoom.seq) {
+        const err = new Error("stale_state");
+        err.code = "stale_state";
+        err.currentSeq = targetRoom.seq;
+        throw err;
+      }
+
+      // 6. Validate playerId: must be a non-empty trimmed string
+      if (typeof playerId !== "string" || !playerId.trim()) {
+        const err = new Error("invalid_player_id");
+        err.code = "invalid_player_id";
+        throw err;
+      }
+
+      // 7. Find player in room — player_not_found if absent
+      let targetPlayer = null;
+      for (const player of targetRoom.players) {
+        if (player.id === playerId) {
+          targetPlayer = player;
+          break;
+        }
+      }
+      if (!targetPlayer) {
+        const err = new Error("player_not_found");
+        err.code = "player_not_found";
+        throw err;
+      }
+
+      // 8. Idempotent no-op: same ready value → return snapshot without seq increment
+      if (targetPlayer.ready === ready) {
+        return deepClone(targetRoom);
+      }
+
+      // 9. Change ready, increment seq once, return detached snapshot
+      targetPlayer.ready = ready;
+      targetRoom.seq += 1;
+
+      return deepClone(targetRoom);
+    },
   };
 }
 
