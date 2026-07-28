@@ -63,11 +63,16 @@
 
             <button id="startBtn" class="btn primary" type="button">Play Solo</button>
 
-            <div class="multiplayer-section">
-              <button id="createMatchBtn" class="btn" type="button" disabled aria-describedby="createMatchHint">Create Match</button>
-              <span id="createMatchHint" class="coming-soon-hint">Coming Soon</span>
-              <button id="joinMatchBtn" class="btn" type="button" disabled aria-describedby="joinMatchHint">Join Match</button>
-              <span id="joinMatchHint" class="coming-soon-hint">Coming Soon</span>
+            <div id="multiplayerLobby" class="multiplayer-section">
+              <input id="roomName" type="text" placeholder="Your name" aria-label="Player name" />
+              <input id="roomCode" type="text" placeholder="Room code" aria-label="Room code" />
+              <button id="createMatchBtn" class="btn" type="button">Create Match</button>
+              <button id="joinMatchBtn" class="btn" type="button">Join Match</button>
+              <div id="roomStatus" class="status" aria-live="polite"></div>
+              <div id="roomPlayers" class="players-list" aria-live="polite"></div>
+              <button id="roomReadyBtn" class="btn primary" type="button">Ready</button>
+              <button id="copyCodeBtn" class="btn" type="button" disabled>Copy Code</button>
+              <button id="copyInviteLinkBtn" class="btn" type="button" disabled>Copy Invite Link</button>
             </div>
 
             <div class="setting">
@@ -131,5 +136,6 @@
     <script src="theme.js?v=0.3.0-beta.1"></script>
     <script src="theme-renderer.js?v=0.3.0-beta.1"></script>
     <script type="module" src="game.js?v=0.3.0-beta.1"></script>
+    <script type="module" src="room-client.js?v=0.3.0-beta.1&rev=room-lobby-1"></script>
   </body>
 </html>
