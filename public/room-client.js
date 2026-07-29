@@ -5,6 +5,7 @@ const ws = new WebSocket(wsUrl);
 let currentSeq = null;
 let selfPlayerId = null;
 let roomState = null;
+let dispatchedMatchIds = new Set();
 
 const els = {
   roomName: document.getElementById('roomName'),
@@ -86,6 +87,32 @@ function normalizeRoomCode(code) {
   return code.replace(/[\s-]/g, '').toUpperCase();
 }
 
+function isValidMatch(match, seq) {
+  if (!match || typeof match !== 'object') return false;
+  if (typeof match.id !== 'string' || match.id.length < 1 || match.id.length > 64) return false;
+  if (!/^[A-Za-z0-9_-]+$/.test(match.id)) return false;
+  if (typeof match.seed !== 'number' || !Number.isInteger(match.seed) || match.seed < 0 || match.seed > 0xffffffff) return false;
+  if (typeof match.startedSeq !== 'number' || !Number.isInteger(match.startedSeq) || match.startedSeq < 1) return false;
+  if (match.startedSeq !== seq) return false;
+  return true;
+}
+
+function handleMatchSnapshot(match, seq) {
+  if (!isValidMatch(match, seq)) return;
+  const matchId = match.id;
+  if (dispatchedMatchIds.has(matchId)) {
+    els.readyBtn.disabled = true;
+    els.readyBtn.textContent = 'Started';
+    return;
+  }
+  dispatchedMatchIds.add(matchId);
+  els.readyBtn.disabled = true;
+  els.readyBtn.textContent = 'Started';
+  window.dispatchEvent(new CustomEvent('stacklogic:match-start', {
+    detail: { id: match.id, seed: match.seed, startedSeq: match.startedSeq }
+  }));
+}
+
 const params = new URLSearchParams(window.location.search);
 const rawPrefill = params.get('room');
 let prefilledRoom = '';
@@ -109,6 +136,7 @@ ws.addEventListener('message', (e) => {
     els.roomCode.value = normalizeRoomCode(data.room.code);
     els.copyCodeBtn.disabled = false;
     els.copyInviteLinkBtn.disabled = false;
+    handleMatchSnapshot(data.room.match, currentSeq);
   } else if (data.type === 'error') setStatus(`Error: ${data.code}`);
 });
 ws.addEventListener('error', () => setStatus('Connection error.'));

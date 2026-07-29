@@ -658,6 +658,33 @@ startBtn.addEventListener('click', () => {
   startGame();
 });
 
+// StackLogic match-start handoff seam
+(function() {
+  const startedIds = new Set();
+
+  function isValidMatchStart(detail) {
+    if (!detail || typeof detail !== 'object') return false;
+    var id = detail.id;
+    if (typeof id !== 'string' || id.length < 1 || id.length > 64) return false;
+    if (!/^[A-Za-z0-9_-]+$/.test(id)) return false;
+    var seed = detail.seed;
+    if (typeof seed !== 'number' || !Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) return false;
+    var startedSeq = detail.startedSeq;
+    if (typeof startedSeq !== 'number' || !Number.isInteger(startedSeq) || startedSeq < 1) return false;
+    return true;
+  }
+
+  window.addEventListener('stacklogic:match-start', function(event) {
+    var detail = event.detail;
+    if (!isValidMatchStart(detail)) return;
+    var id = detail.id;
+    var seed = detail.seed;
+    if (startedIds.has(id)) return;
+    startedIds.add(id);
+    startGame(seed);
+  });
+})();
+
 if (previewCheckbox) {
   // Initialize checkbox state from localStorage
   try {

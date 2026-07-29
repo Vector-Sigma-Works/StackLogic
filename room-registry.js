@@ -1,10 +1,12 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
 import { generateRoomCode, normalizePlayerName, ROOM_CODE_ALPHABET } from "./room-code.js";
 
 function createRoomRegistry({
   generateCode = generateRoomCode,
   createPlayerId = randomUUID,
   maxCodeAttempts: attemptLimit = 32,
+  createMatchId = () => randomUUID(),
+  createMatchSeed = () => randomBytes(4).readUInt32BE(0),
 } = {}) {
   if (
     typeof attemptLimit !== "number" ||
@@ -265,14 +267,80 @@ function createRoomRegistry({
         throw err;
       }
 
-      // 8. Idempotent no-op: same ready value → return snapshot without seq increment
+      // 8. If match already started, reject readiness changes before any mutation or idempotent check
+      if (Object.hasOwn(targetRoom, "match")) {
+        const err = new Error("match_started");
+        err.code = "match_started";
+        throw err;
+      }
+
+      // 9. Idempotent no-op: same ready value → return snapshot without seq increment
       if (targetPlayer.ready === ready) {
         return deepClone(targetRoom);
       }
 
-      // 9. Change ready, increment seq once, return detached snapshot
+      // 10. If this transition would make both players ready, validate match authority
+      //     against the still-unmodified room before any mutation.
+      const wouldMakeBothReady =
+        ready === true &&
+        targetRoom.players.length === 2 &&
+        !targetPlayer.ready &&
+        targetRoom.players.some(
+          (p) => p.id !== targetPlayer.id && p.ready === true,
+        );
+
+      let preparedMatch = null;
+      if (wouldMakeBothReady) {
+        let matchId;
+        try {
+          matchId = createMatchId();
+        } catch (e) {
+          const err = new Error("invalid_match_id");
+          err.code = "invalid_match_id";
+          throw err;
+        }
+        if (
+          typeof matchId !== "string" ||
+          !matchId.trim() ||
+          matchId.length < 1 ||
+          matchId.length > 64 ||
+          !/^[A-Za-z0-9_-]+$/.test(matchId)
+        ) {
+          const err = new Error("invalid_match_id");
+          err.code = "invalid_match_id";
+          throw err;
+        }
+
+        let matchSeed;
+        try {
+          matchSeed = createMatchSeed();
+        } catch (e) {
+          const err = new Error("invalid_match_seed");
+          err.code = "invalid_match_seed";
+          throw err;
+        }
+        if (
+          typeof matchSeed !== "number" ||
+          !Number.isInteger(matchSeed) ||
+          matchSeed < 0 ||
+          matchSeed > 0xffffffff
+        ) {
+          const err = new Error("invalid_match_seed");
+          err.code = "invalid_match_seed";
+          throw err;
+        }
+
+        preparedMatch = { id: matchId, seed: matchSeed, startedSeq: targetRoom.seq + 1 };
+      }
+
+      // 11. Change ready, increment seq once
       targetPlayer.ready = ready;
       targetRoom.seq += 1;
+
+      // 12. Attach prepared match if both players are now ready
+      if (preparedMatch) {
+        targetRoom.match = preparedMatch;
+      }
 
       return deepClone(targetRoom);
     },
