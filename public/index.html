@@ -7,7 +7,7 @@
     <title>Stacklogic</title>
     <meta name="description" content="Stacklogic, a falling block game." />
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="style.css?v=0.3.0-beta.1" />
+    <link rel="stylesheet" href="style.css?v=0.3.0-beta.1&rev=opponent-state-1" />
   </head>
   <body>
     <main class="wrap">
@@ -63,11 +63,16 @@
 
             <button id="startBtn" class="btn primary" type="button">Play Solo</button>
 
-            <div class="multiplayer-section">
-              <button id="createMatchBtn" class="btn" type="button" disabled aria-describedby="createMatchHint">Create Match</button>
-              <span id="createMatchHint" class="coming-soon-hint">Coming Soon</span>
-              <button id="joinMatchBtn" class="btn" type="button" disabled aria-describedby="joinMatchHint">Join Match</button>
-              <span id="joinMatchHint" class="coming-soon-hint">Coming Soon</span>
+            <div id="multiplayerLobby" class="multiplayer-section">
+              <input id="roomName" type="text" placeholder="Your name" aria-label="Player name" />
+              <input id="roomCode" type="text" placeholder="Room code" aria-label="Room code" />
+              <button id="createMatchBtn" class="btn" type="button">Create Match</button>
+              <button id="joinMatchBtn" class="btn" type="button">Join Match</button>
+              <div id="roomStatus" class="status" aria-live="polite"></div>
+              <div id="roomPlayers" class="players-list" aria-live="polite"></div>
+              <button id="roomReadyBtn" class="btn primary" type="button">Ready</button>
+              <button id="copyCodeBtn" class="btn" type="button" disabled>Copy Code</button>
+              <button id="copyInviteLinkBtn" class="btn" type="button" disabled>Copy Invite Link</button>
             </div>
 
             <div class="setting">
@@ -104,11 +109,14 @@
           </div>
         </div>
 
-        <div id="gameOver" class="overlay">
-          <div class="card">
-            <h2 class="title">Game Over</h2>
-            <p class="hint" id="gameOverText">Your game has ended.</p>
-            <button id="goHomeBtn" class="btn primary" type="button">Home</button>
+        <div id="gameOver" class="overlay" role="dialog" aria-modal="true" aria-labelledby="gameResultTitle">
+          <div class="card result-card">
+            <div id="victoryFireworks" class="victory-fireworks" hidden aria-hidden="true">✦ ✷ ✦</div>
+            <h2 id="gameResultTitle" class="title" aria-live="assertive">Game Over</h2>
+            <p class="hint" id="gameOverText" aria-live="polite">Your game has ended.</p>
+            <p id="rematchStatus" class="hint" aria-live="polite"></p>
+            <button id="rematchBtn" class="btn primary" type="button" disabled>Rematch</button>
+            <button id="goHomeBtn" class="btn" type="button">Home</button>
           </div>
         </div>
 
@@ -126,10 +134,22 @@
 
         <div class="mobile-status" id="statusMobile"></div>
       </div>
+
+      <aside id="opponentPanel" class="opponent-panel" hidden aria-labelledby="opponentHeading">
+        <h2 id="opponentHeading" class="opp-heading">Opponent</h2>
+        <canvas id="opponentGame" width="120" height="240" aria-label="Opponent game board"></canvas>
+        <div class="opp-info">
+          <div class="row"><span>Name</span><span id="opponentName">—</span></div>
+          <div class="row"><span>Score</span><span id="opponentScore">0</span></div>
+          <div class="row"><span>Lines</span><span id="opponentLines">0</span></div>
+        </div>
+        <p id="opponentStatus" class="opp-status" aria-live="polite"></p>
+      </aside>
     </main>
 
     <script src="theme.js?v=0.3.0-beta.1"></script>
     <script src="theme-renderer.js?v=0.3.0-beta.1"></script>
-    <script type="module" src="game.js?v=0.3.0-beta.1"></script>
+    <script type="module" src="game.js?v=0.3.0-beta.1&rev=opponent-state-1"></script>
+    <script type="module" src="room-client.js?v=0.3.0-beta.1&rev=opponent-state-1"></script>
   </body>
 </html>

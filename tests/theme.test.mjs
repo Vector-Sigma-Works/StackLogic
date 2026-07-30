@@ -107,20 +107,18 @@ describe('Theme module', () => {
     }
   });
 
-  it('index.html contains Coming Soon labels for Create Match and Join Match', () => {
-    assert.ok(
-      htmlSrc.includes('Coming Soon'),
-      'index.html must contain Coming Soon labels for multiplayer controls'
+  it('index.html exposes enabled Create Match and Join Match controls', () => {
+    assert.match(
+      htmlSrc,
+      /id="createMatchBtn"[^>]*type="button"/
     );
-    // Verify the multiplayer buttons exist but are disabled/coming soon
-    assert.ok(
-      htmlSrc.includes('createMatchBtn') || htmlSrc.includes('createMatch'),
-      'index.html must contain a Create Match button element'
+    assert.match(
+      htmlSrc,
+      /id="joinMatchBtn"[^>]*type="button"/
     );
-    assert.ok(
-      htmlSrc.includes('joinMatchBtn') || htmlSrc.includes('joinMatch'),
-      'index.html must contain a Join Match button element'
-    );
+    assert.doesNotMatch(htmlSrc, /id="createMatchBtn"[^>]*\bdisabled\b/);
+    assert.doesNotMatch(htmlSrc, /id="joinMatchBtn"[^>]*\bdisabled\b/);
+    assert.doesNotMatch(htmlSrc, /Coming Soon/);
   });
 
   it('index.html Play Solo button is the primary action', () => {

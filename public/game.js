@@ -35,8 +35,20 @@ const titleOverlay = document.getElementById('title');
 const startBtn = document.getElementById('startBtn');
 const highScoresEl = document.getElementById('highScores');
 
+// Opponent panel elements
+const opponentPanel = document.getElementById('opponentPanel');
+const opponentGame = document.getElementById('opponentGame');
+const opponentName = document.getElementById('opponentName');
+const opponentScore = document.getElementById('opponentScore');
+const opponentLines = document.getElementById('opponentLines');
+const opponentStatus = document.getElementById('opponentStatus');
+
 const gameOverOverlay = document.getElementById('gameOver');
 const gameOverText = document.getElementById('gameOverText');
+const gameResultTitle = document.getElementById('gameResultTitle');
+const rematchStatus = document.getElementById('rematchStatus');
+const rematchBtn = document.getElementById('rematchBtn');
+const victoryFireworks = document.getElementById('victoryFireworks');
 const goHomeBtn = document.getElementById('goHomeBtn');
 const pauseMenu = document.getElementById('pauseMenu');
 const pauseResumeBtn = document.getElementById('pauseResumeBtn');
@@ -252,6 +264,12 @@ let nextType = null;
 
 let state; // 'home' | 'playing' | 'paused' | 'gameover'
 
+// Multiplayer owner state (separate from local gameplay state)
+let activeMultiplayerMatchId = null;
+let finishedMultiplayerMatchId = null;
+let rematchCommitted = false;
+let lastRenderedOpponentSeq = 0;
+
 let levelProgressText;
 
 const music = new Audio('assets/stacklogic.mp3');
@@ -460,6 +478,12 @@ function lockPiece() {
 
   clearLines();
   updateHUD();
+
+  // Publish local state after settled lock (before spawn)
+  if (activeMultiplayerMatchId != null) {
+    publishLocalState(false);
+  }
+
   spawn();
 }
 
@@ -534,6 +558,8 @@ function togglePause() {
 }
 
 function goHome() {
+  if (rematchCommitted) return;
+  invalidateOwner();
   state = 'home';
   pauseBtn.textContent = 'Pause';
   portraitPauseBtn.textContent = 'Pause';
@@ -543,12 +569,78 @@ function goHome() {
   resetGameState();
 }
 
+// ---- Multiplayer lifecycle helpers ----
+
+function dispatchStackLogicEvent(type, detail) {
+  const EventConstructor = globalThis.CustomEvent;
+  const event = typeof EventConstructor === 'function'
+    ? new EventConstructor(type, { detail })
+    : { type, detail };
+  window.dispatchEvent(event);
+}
+
+function publishLocalState(gameOver) {
+  if (activeMultiplayerMatchId == null) return;
+  const detachedBoard = cloneMatrix(board);
+  dispatchStackLogicEvent('stacklogic:local-state', {
+    matchId: activeMultiplayerMatchId,
+    board: detachedBoard,
+    score: score,
+    lines: lines,
+    gameOver: !!gameOver
+  });
+}
+
+function getOpponentContext() {
+  if (!opponentGame || typeof opponentGame.getContext !== 'function') return null;
+  return opponentGame.getContext('2d');
+}
+
+function invalidateOwner() {
+  const endingMatchId = activeMultiplayerMatchId;
+  const abandonedMatchId = finishedMultiplayerMatchId;
+  activeMultiplayerMatchId = null;
+  finishedMultiplayerMatchId = null;
+  rematchCommitted = false;
+  lastRenderedOpponentSeq = 0;
+
+  // Clear every multiplayer-only visual/action surface even after a finished match.
+  const octx = getOpponentContext();
+  if (octx) octx.clearRect(0, 0, opponentGame.width, opponentGame.height);
+  if (opponentName) opponentName.textContent = '—';
+  if (opponentScore) opponentScore.textContent = '0';
+  if (opponentLines) opponentLines.textContent = '0';
+  if (opponentStatus) opponentStatus.textContent = '';
+  if (opponentPanel) opponentPanel.hidden = true;
+  if (victoryFireworks) victoryFireworks.hidden = true;
+  if (rematchStatus) rematchStatus.textContent = '';
+  if (rematchBtn) {
+    rematchBtn.disabled = true;
+    rematchBtn.textContent = 'Rematch';
+  }
+
+  // Dispatch only when an active multiplayer owner actually ended.
+  if (endingMatchId != null) {
+    dispatchStackLogicEvent('stacklogic:multiplayer-end', { matchId: endingMatchId });
+  } else if (abandonedMatchId != null) {
+    dispatchStackLogicEvent('stacklogic:multiplayer-abandon', { matchId: abandonedMatchId });
+  }
+}
+
 function triggerGameOver(reason) {
   if (state === 'gameover') return;
   state = 'gameover';
   hideOverlay(pauseMenu);
   stopMusic();
   setStatus('Game Over');
+  // A multiplayer loss waits for the server-authoritative result. Do not run the
+  // solo high-score/home flow or fence the result bridge before it arrives.
+  if (activeMultiplayerMatchId != null) {
+    setStatus('Match result pending…');
+    publishLocalState(true);
+    return;
+  }
+
   showGameOver('Game Over');
 
   // Freeze input immediately. Async flow runs after.
@@ -572,6 +664,9 @@ function triggerGameOver(reason) {
 }
 
 function startGame(seed = createSoloSeed()) {
+  if (rematchCommitted) return;
+  // Solo Start clears both active and completed multiplayer ownership/UI.
+  invalidateOwner();
   hideHome();
   hideOverlay(gameOverOverlay);
   hideOverlay(pauseMenu);
@@ -654,9 +749,210 @@ goHomeBtn.addEventListener('click', () => {
   goHome();
 });
 
+if (rematchBtn) rematchBtn.addEventListener('click', () => {
+  if (rematchBtn.disabled) return;
+  rematchCommitted = true;
+  rematchBtn.disabled = true;
+  rematchBtn.textContent = 'Waiting for opponent…';
+  if (rematchStatus) rematchStatus.textContent = 'Waiting for opponent to accept Rematch.';
+  dispatchStackLogicEvent('stacklogic:rematch-request', { matchId: finishedMultiplayerMatchId });
+});
+
 startBtn.addEventListener('click', () => {
   startGame();
 });
+
+// StackLogic match-start handoff seam
+(function() {
+  const startedIds = new Set();
+
+  function isValidMatchStart(detail) {
+    if (!detail || typeof detail !== 'object') return false;
+    var id = detail.id;
+    if (typeof id !== 'string' || id.length < 1 || id.length > 64) return false;
+    if (!/^[A-Za-z0-9_-]+$/.test(id)) return false;
+    var seed = detail.seed;
+    if (typeof seed !== 'number' || !Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) return false;
+    var startedSeq = detail.startedSeq;
+    if (typeof startedSeq !== 'number' || !Number.isInteger(startedSeq) || startedSeq < 1) return false;
+    return true;
+  }
+
+  window.addEventListener('stacklogic:match-start', function(event) {
+    var detail = event.detail;
+    if (!isValidMatchStart(detail)) return;
+    var id = detail.id;
+    var seed = detail.seed;
+    if (startedIds.has(id)) return;
+    startedIds.add(id);
+
+    // If a different game-side owner is active, invalidate that old owner exactly once
+    if (activeMultiplayerMatchId != null && activeMultiplayerMatchId !== id) {
+      invalidateOwner();
+    }
+
+    // Activate the new bounded match ID and reset opponent sequence to 0
+    activeMultiplayerMatchId = id;
+    finishedMultiplayerMatchId = null;
+    rematchCommitted = false;
+    if (rematchStatus) rematchStatus.textContent = '';
+    lastRenderedOpponentSeq = 0;
+
+    // Start the seeded game through the existing start seam
+    hideHome();
+    hideOverlay(gameOverOverlay);
+    hideOverlay(pauseMenu);
+    resetGameState(seed);
+    state = 'playing';
+    pauseBtn.textContent = 'Pause';
+    portraitPauseBtn.textContent = 'Pause';
+    startMusic();
+
+    // Reveal and reset the opponent panel with status exactly "Waiting for opponent"
+    if (opponentName) opponentName.textContent = '—';
+    if (opponentScore) opponentScore.textContent = '0';
+    if (opponentLines) opponentLines.textContent = '0';
+    if (opponentStatus) opponentStatus.textContent = 'Waiting for opponent';
+    const octx = getOpponentContext();
+    if (octx) octx.clearRect(0, 0, opponentGame.width, opponentGame.height);
+    if (opponentPanel) opponentPanel.hidden = false;
+
+    // Dispatch exactly one initial local snapshot
+    publishLocalState(false);
+  });
+})();
+
+window.addEventListener('stacklogic:match-result', (event) => {
+  const detail = event?.detail;
+  if (!detail || detail.matchId !== activeMultiplayerMatchId || typeof detail.didWin !== 'boolean') return;
+  state = 'gameover';
+  stopMusic();
+  hideOverlay(pauseMenu);
+  if (gameResultTitle) gameResultTitle.textContent = detail.didWin ? 'Victory!' : 'Defeat';
+  if (gameOverText) gameOverText.textContent = detail.didWin ? 'You won the round!' : `${detail.winnerName || 'Your opponent'} won the round.`;
+  if (victoryFireworks) victoryFireworks.hidden = !detail.didWin;
+  if (rematchStatus) rematchStatus.textContent = 'Choose Rematch to play another round.';
+  if (rematchBtn) { rematchBtn.disabled = false; rematchBtn.textContent = 'Rematch'; }
+  if (!detail.didWin && opponentStatus) opponentStatus.textContent = `${detail.winnerName || 'Opponent'} wins! ✦`;
+  finishedMultiplayerMatchId = detail.matchId;
+  rematchCommitted = false;
+  activeMultiplayerMatchId = null;
+  showOverlay(gameOverOverlay);
+  if (rematchBtn && typeof rematchBtn.focus === 'function') rematchBtn.focus();
+});
+
+window.addEventListener('stacklogic:rematch-status', (event) => {
+  const detail = event?.detail;
+  if (!detail || detail.matchId !== finishedMultiplayerMatchId || !Array.isArray(detail.acceptedPlayerIds) || !rematchBtn) return;
+  if (rematchBtn.disabled) return;
+  if (detail.acceptedPlayerIds.length === 0) {
+    rematchBtn.textContent = 'Rematch';
+    if (rematchStatus) rematchStatus.textContent = 'Choose Rematch to play another round.';
+    return;
+  }
+  rematchBtn.textContent = 'Opponent ready — Rematch';
+  if (rematchStatus) rematchStatus.textContent = 'Opponent accepted. Choose Rematch to start the next round.';
+});
+
+// ---- Opponent state event handler ----
+(function() {
+  const VALID_PIECES = new Set(['I', 'O', 'T', 'S', 'Z', 'J', 'L']);
+  const SAFE_INT_MAX = 1_000_000_000;
+
+  function isSafeInt(n) {
+    return typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= SAFE_INT_MAX;
+  }
+
+  function isValidOpponentBoard(board) {
+    if (!Array.isArray(board) || board.length !== 20) return false;
+    for (let y = 0; y < 20; y++) {
+      const row = board[y];
+      if (!Array.isArray(row) || row.length !== 10) return false;
+      for (let x = 0; x < 10; x++) {
+        const cell = row[x];
+        if (cell !== null && !VALID_PIECES.has(cell)) return false;
+      }
+    }
+    return true;
+  }
+
+  function handleOpponentState(event) {
+    try {
+      // Must be a non-null object with exactly own enumerable keys matchId, opponent
+      var detail = event.detail;
+      if (!detail || typeof detail !== 'object') return;
+      var ownKeys = Object.keys(detail);
+      if (ownKeys.length !== 2 || !Object.hasOwn(detail, 'matchId') || !Object.hasOwn(detail, 'opponent')) return;
+
+      var matchId = detail.matchId;
+      if (typeof matchId !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(matchId)) return;
+
+      // A game-side multiplayer owner must be active and match
+      if (activeMultiplayerMatchId == null || activeMultiplayerMatchId !== matchId) return;
+
+      var opponent = detail.opponent;
+      if (!opponent || typeof opponent !== 'object') return;
+      var oppKeys = Object.keys(opponent);
+      if (oppKeys.length !== 6 || !Object.hasOwn(opponent, 'name') || !Object.hasOwn(opponent, 'updateSeq') ||
+          !Object.hasOwn(opponent, 'board') || !Object.hasOwn(opponent, 'score') || !Object.hasOwn(opponent, 'lines') ||
+          !Object.hasOwn(opponent, 'gameOver')) return;
+
+      var name = opponent.name;
+      if (typeof name !== 'string' || name.length < 1 || name.length > 24) return;
+
+      var updateSeq = opponent.updateSeq;
+      if (typeof updateSeq !== 'number' || !Number.isSafeInteger(updateSeq) || updateSeq < 1 || updateSeq > SAFE_INT_MAX) return;
+
+      // Must equal last-rendered sequence plus one
+      if (updateSeq !== lastRenderedOpponentSeq + 1) return;
+
+      var oppBoard = opponent.board;
+      if (!isValidOpponentBoard(oppBoard)) return;
+
+      var oppScore = opponent.score;
+      if (!isSafeInt(oppScore)) return;
+
+      var oppLines = opponent.lines;
+      if (!isSafeInt(oppLines)) return;
+
+      var gameOver = opponent.gameOver;
+      if (typeof gameOver !== 'boolean') return;
+
+      // All validation passed - render
+      // Clear the complete 120 x 240 opponent canvas
+      const octx = getOpponentContext();
+      if (octx) {
+        octx.clearRect(0, 0, opponentGame.width, opponentGame.height);
+
+        // Draw each occupied cell
+        var themeId = (typeof window !== 'undefined' && window.ThemeModule && window.ThemeModule.getCurrentTheme)
+          ? window.ThemeModule.getCurrentTheme() : 'Default';
+
+        for (let y = 0; y < 20; y++) {
+          for (let x = 0; x < 10; x++) {
+            const cellType = oppBoard[y][x];
+            if (cellType) {
+              drawBrickAt(octx, x * 12, y * 12, COLORS[cellType], themeId, 12);
+            }
+          }
+        }
+      }
+
+      // Set name, score, lines, and status through textContent
+      if (opponentName) opponentName.textContent = name;
+      if (opponentScore) opponentScore.textContent = String(oppScore);
+      if (opponentLines) opponentLines.textContent = String(oppLines);
+      if (opponentStatus) opponentStatus.textContent = gameOver ? 'Game Over' : 'Playing';
+
+      // Advance last-rendered sequence only after complete validation/rendering
+      lastRenderedOpponentSeq = updateSeq;
+    } catch (e) {
+      // Non-throwing: invalid events do not advance sequence, alter text, or draw
+    }
+  }
+
+  window.addEventListener('stacklogic:opponent-state', handleOpponentState);
+})();
 
 if (previewCheckbox) {
   // Initialize checkbox state from localStorage
