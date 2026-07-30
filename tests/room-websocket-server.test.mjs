@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
+import net from "node:net";
 import WebSocket from "ws";
 import { createRoomRegistry } from "../room-registry.js";
 import { createRoomWebSocketServer } from "../room-websocket-server.js";
@@ -64,6 +65,7 @@ async function startHarness({ maxPayloadBytes = 4096, connectionIds = ["c1", "c2
 
   return {
     url: `ws://127.0.0.1:${port}`,
+    port,
     registry,
     server,
     transport,
@@ -73,6 +75,32 @@ async function startHarness({ maxPayloadBytes = 4096, connectionIds = ["c1", "c2
       await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
     },
   };
+}
+
+function rawUpgradeStatus(port, host) {
+  return withinSocketDeadline(new Promise((resolve, reject) => {
+    const socket = net.createConnection({ host: "127.0.0.1", port }, () => {
+      socket.write([
+        "GET /ws HTTP/1.1",
+        `Host: ${host}`,
+        "Connection: Upgrade",
+        "Upgrade: websocket",
+        "Sec-WebSocket-Version: 13",
+        "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==",
+        `Origin: ${ALLOWED_ORIGIN}`,
+        "",
+        "",
+      ].join("\r\n"));
+    });
+    let response = "";
+    socket.setEncoding("utf8");
+    socket.on("data", (chunk) => { response += chunk; });
+    socket.on("end", () => {
+      const match = /^HTTP\/1\.1 (\d{3})/.exec(response);
+      match ? resolve(Number(match[1])) : reject(new Error("missing_http_status"));
+    });
+    socket.on("error", reject);
+  }), "raw_upgrade_rejection");
 }
 
 function connect(url, { origin = ALLOWED_ORIGIN, path = "/ws" } = {}) {
@@ -128,6 +156,16 @@ describe("room WebSocket server", () => {
       assert.equal(await rejectedStatus(harness.url, { origin: null }), 403);
       assert.equal(await rejectedStatus(harness.url, { origin: "https://evil.example" }), 403);
       assert.equal(await rejectedStatus(harness.url, { origin: `${ALLOWED_ORIGIN}.evil.example` }), 403);
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("rejects malformed Host headers without crashing the upgrade listener", async () => {
+    const harness = await startHarness();
+    try {
+      assert.equal(await rawUpgradeStatus(harness.port, "["), 400);
+      assert.equal(await rejectedStatus(harness.url, { path: "/" }), 404);
     } finally {
       await harness.close();
     }

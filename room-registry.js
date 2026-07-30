@@ -20,6 +20,7 @@ function createRoomRegistry({
   }
 
   const rooms = new Map();
+  const issuedMatchIdsByRoom = new Map();
 
   function isValidRoomCode(code) {
     if (typeof code !== "string" || code.length !== 6) return false;
@@ -74,6 +75,7 @@ function createRoomRegistry({
           players: [{ id: playerId, name: normalizedName, ready: false }],
         };
         rooms.set(code, room);
+        issuedMatchIdsByRoom.set(code, new Set());
         return {
           playerId,
           room: deepClone(room),
@@ -340,8 +342,260 @@ function createRoomRegistry({
       // 12. Attach prepared match if both players are now ready
       if (preparedMatch) {
         targetRoom.match = preparedMatch;
+        issuedMatchIdsByRoom.get(targetRoom.code).add(preparedMatch.id);
       }
 
+      return deepClone(targetRoom);
+    },
+
+    updatePlayerState({ code, playerId, matchId, updateSeq, state }) {
+      // 1. Normalize + validate room code
+      if (code === null || code === undefined || typeof code !== "string") {
+        const err = new Error("invalid_room_code");
+        err.code = "invalid_room_code";
+        throw err;
+      }
+      const trimmedCode = code.trim().toUpperCase();
+      if (!isValidRoomCode(trimmedCode)) {
+        const err = new Error("invalid_room_code");
+        err.code = "invalid_room_code";
+        throw err;
+      }
+
+      // 2. Look up authoritative room
+      const lowerKey = trimmedCode.toLowerCase();
+      let targetRoom = null;
+      for (const [key, room] of rooms) {
+        if (key.toLowerCase() === lowerKey) {
+          targetRoom = room;
+          break;
+        }
+      }
+      if (!targetRoom) {
+        const err = new Error("room_not_found");
+        err.code = "room_not_found";
+        throw err;
+      }
+
+      // 3. Validate match exists and started
+      if (!Object.hasOwn(targetRoom, "match")) {
+        const err = new Error("match_not_started");
+        err.code = "match_not_started";
+        throw err;
+      }
+
+      // 4. Validate matchId matches room's current match
+      if (targetRoom.match.id !== matchId) {
+        const err = new Error("match_mismatch");
+        err.code = "match_mismatch";
+        throw err;
+      }
+      if (Object.hasOwn(targetRoom.match, "result")) {
+        const err = new Error("match_finished");
+        err.code = "match_finished";
+        throw err;
+      }
+
+      // 5. Validate playerId: must be a non-empty trimmed string
+      if (typeof playerId !== "string" || !playerId.trim()) {
+        const err = new Error("invalid_player_id");
+        err.code = "invalid_player_id";
+        throw err;
+      }
+
+      // 6. Find player in room
+      let targetPlayer = null;
+      for (const player of targetRoom.players) {
+        if (player.id === playerId) {
+          targetPlayer = player;
+          break;
+        }
+      }
+      if (!targetPlayer) {
+        const err = new Error("player_not_found");
+        err.code = "player_not_found";
+        throw err;
+      }
+
+      // 7. Validate updateSeq: must be a safe integer in 1..1,000,000,000
+      if (
+        typeof updateSeq !== "number" ||
+        !Number.isInteger(updateSeq) ||
+        updateSeq < 1 ||
+        updateSeq > 1_000_000_000
+      ) {
+        const err = new Error("invalid_update_sequence");
+        err.code = "invalid_update_sequence";
+        throw err;
+      }
+
+      // 8. Check per-player sequence: expected is currentUpdateSeq + 1 (or 1 if first)
+      const expectedSeq = (targetPlayer.currentUpdateSeq ?? 0) + 1;
+      if (updateSeq !== expectedSeq) {
+        const err = new Error("stale_player_state");
+        err.code = "stale_player_state";
+        err.currentUpdateSeq = targetPlayer.currentUpdateSeq ?? 0;
+        throw err;
+      }
+
+      // 9. Validate state shape: exactly board, score, lines, gameOver — no extra keys
+      const expectedStateKeys = new Set(["board", "score", "lines", "gameOver"]);
+      if (
+        typeof state !== "object" ||
+        state === null ||
+        Array.isArray(state) ||
+        Object.keys(state).length !== 4 ||
+        [...Object.keys(state)].some((k) => !expectedStateKeys.has(k))
+      ) {
+        const err = new Error("invalid_player_state");
+        err.code = "invalid_player_state";
+        throw err;
+      }
+
+      // 10. Validate board: exactly 20 rows x 10 columns, each cell null or valid token
+      const board = state.board;
+      if (
+        !Array.isArray(board) ||
+        board.length !== 20
+      ) {
+        const err = new Error("invalid_player_state");
+        err.code = "invalid_player_state";
+        throw err;
+      }
+      const validTokens = new Set(["I", "O", "T", "S", "Z", "J", "L"]);
+      for (let r = 0; r < 20; r++) {
+        const row = board[r];
+        if (!Array.isArray(row) || row.length !== 10) {
+          const err = new Error("invalid_player_state");
+          err.code = "invalid_player_state";
+          throw err;
+        }
+        for (let c = 0; c < 10; c++) {
+          const cell = row[c];
+          if (cell !== null && !validTokens.has(cell)) {
+            const err = new Error("invalid_player_state");
+            err.code = "invalid_player_state";
+            throw err;
+          }
+        }
+      }
+
+      // 11. Validate score: non-negative safe integer ≤ 1,000,000,000
+      const score = state.score;
+      if (
+        typeof score !== "number" ||
+        !Number.isInteger(score) ||
+        score < 0 ||
+        score > 1_000_000_000
+      ) {
+        const err = new Error("invalid_player_state");
+        err.code = "invalid_player_state";
+        throw err;
+      }
+
+      // 12. Validate lines: non-negative safe integer ≤ 1,000,000,000
+      const lines = state.lines;
+      if (
+        typeof lines !== "number" ||
+        !Number.isInteger(lines) ||
+        lines < 0 ||
+        lines > 1_000_000_000
+      ) {
+        const err = new Error("invalid_player_state");
+        err.code = "invalid_player_state";
+        throw err;
+      }
+
+      // 13. Validate gameOver: must be boolean
+      if (typeof state.gameOver !== "boolean") {
+        const err = new Error("invalid_player_state");
+        err.code = "invalid_player_state";
+        throw err;
+      }
+
+      // 14. All validation passed — resolve terminal authority before any mutation.
+      const acceptedState = deepClone(state);
+      acceptedState.updateSeq = updateSeq;
+      let winner = null;
+      if (acceptedState.gameOver) {
+        winner = targetRoom.players.find((player) => player.id !== targetPlayer.id);
+        if (!winner) {
+          const err = new Error("invalid_match_state");
+          err.code = "invalid_match_state";
+          throw err;
+        }
+      }
+
+      targetPlayer.gameState = acceptedState;
+      targetPlayer.currentUpdateSeq = updateSeq;
+
+      // A validated terminal report resolves this match exactly once. The registry,
+      // not either browser, owns the winner/loser record.
+      if (winner) {
+        targetRoom.match.result = { winnerId: winner.id, loserId: targetPlayer.id };
+        targetRoom.match.rematchAccepted = [];
+      }
+
+      // 15. Return complete detached room snapshot (room seq unchanged)
+      return deepClone(targetRoom);
+    },
+
+    requestRematch({ code, playerId, matchId }) {
+      const targetRoom = rooms.get(String(code || "").trim().toUpperCase());
+      if (!targetRoom) {
+        const err = new Error("room_not_found");
+        err.code = "room_not_found";
+        throw err;
+      }
+      if (!targetRoom.match || targetRoom.match.id !== matchId) {
+        const err = new Error("match_mismatch");
+        err.code = "match_mismatch";
+        throw err;
+      }
+      if (!targetRoom.match.result) {
+        const err = new Error("match_not_finished");
+        err.code = "match_not_finished";
+        throw err;
+      }
+      const player = targetRoom.players.find((item) => item.id === playerId);
+      if (!player) {
+        const err = new Error("player_not_found");
+        err.code = "player_not_found";
+        throw err;
+      }
+      const accepted = targetRoom.match.rematchAccepted || (targetRoom.match.rematchAccepted = []);
+      if (accepted.includes(playerId)) return deepClone(targetRoom);
+      const completesRematch = accepted.length + 1 >= targetRoom.players.length;
+      if (!completesRematch) {
+        accepted.push(playerId);
+        return deepClone(targetRoom);
+      }
+
+      // Prepare and validate the next match before committing the final vote.
+      let nextMatchId;
+      let nextSeed;
+      try {
+        nextMatchId = createMatchId();
+        nextSeed = createMatchSeed();
+      } catch {
+        const err = new Error("invalid_match_state");
+        err.code = "invalid_match_state";
+        throw err;
+      }
+      const issuedMatchIds = issuedMatchIdsByRoom.get(targetRoom.code);
+      if (typeof nextMatchId !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(nextMatchId) || !issuedMatchIds || issuedMatchIds.has(nextMatchId) || !Number.isInteger(nextSeed) || nextSeed < 0 || nextSeed > 0xffffffff) {
+        const err = new Error("invalid_match_state");
+        err.code = "invalid_match_state";
+        throw err;
+      }
+      targetRoom.seq += 1;
+      for (const item of targetRoom.players) {
+        item.ready = true;
+        delete item.gameState;
+        delete item.currentUpdateSeq;
+      }
+      targetRoom.match = { id: nextMatchId, seed: nextSeed, startedSeq: targetRoom.seq };
+      issuedMatchIds.add(nextMatchId);
       return deepClone(targetRoom);
     },
   };

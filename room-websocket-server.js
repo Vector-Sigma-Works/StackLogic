@@ -35,8 +35,17 @@ function createRoomWebSocketServer({ server, registry, allowedOrigin, maxPayload
   let closePromise = null;
 
   const upgradeListener = (request, socket, head) => {
-    const url = new URL(request.url, `http://${request.headers.host}`);
-    const pathname = url.pathname;
+    let pathname;
+    try {
+      if (typeof request.headers.host !== "string") throw new TypeError("invalid_host");
+      new URL(`http://${request.headers.host}`);
+      pathname = new URL(request.url, "http://stacklogic.invalid").pathname;
+    } catch {
+      socket.end(
+        "HTTP/1.1 400 Bad Request\r\nContent-Length: 11\r\nConnection: close\r\n\r\nBad Request"
+      );
+      return;
+    }
 
     // Exact /ws path only
     if (pathname !== "/ws") {

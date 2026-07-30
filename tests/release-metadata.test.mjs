@@ -27,9 +27,11 @@ describe('release metadata', () => {
   });
 
   it('cache-busts every shipped CSS and JavaScript entry asset with the release version', () => {
-    for (const asset of ['style.css', 'theme.js', 'theme-renderer.js', 'game.js']) {
+    for (const asset of ['style.css', 'theme.js', 'theme-renderer.js', 'game.js', 'room-client.js']) {
       assert.match(indexHtml, new RegExp(`${asset.replace('.', '\\.') }\\?v=${RELEASE.replaceAll('.', '\\.').replace('-', '\\-')}`));
     }
+
+    assert.match(indexHtml, /room-client\.js\?v=0\.3\.0-beta\.1&rev=opponent-state-1/);
 
     assert.match(gameJs, /theme-rain-bootstrap\.js\?v=0\.3\.0-beta\.1/);
     assert.match(bootstrapJs, /theme-rain-adapter\.js\?v=0\.3\.0-beta\.1/);

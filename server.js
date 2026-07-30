@@ -1,11 +1,25 @@
+import http from 'node:http';
+import { randomUUID } from 'node:crypto';
 import express from 'express';
 import os from 'os';
 import fs from 'fs/promises';
 import path from 'path';
+import { createRoomRegistry } from './room-registry.js';
+import { createRoomWebSocketServer } from './room-websocket-server.js';
+import { closeHttpServer, closeServers, settleShutdown } from './server-lifecycle.js';
+
+const HOST = process.env.HOST || '0.0.0.0';
+const PORT_RAW = process.env.PORT;
+const PORT = PORT_RAW !== undefined ? Number(PORT_RAW) : 3000;
+if (PORT_RAW !== undefined && (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535)) {
+  throw new Error('invalid_port');
+}
+const STACKLOGIC_ALLOWED_ORIGIN = process.env.STACKLOGIC_ALLOWED_ORIGIN;
+if (!STACKLOGIC_ALLOWED_ORIGIN || typeof STACKLOGIC_ALLOWED_ORIGIN !== 'string') {
+  throw new Error('missing_allowed_origin');
+}
 
 const app = express();
-const PORT = 3000;
-
 const DATA_DIR = path.resolve('data');
 const HIGHSCORES_PATH = path.join(DATA_DIR, 'highscores.json');
 
@@ -83,12 +97,41 @@ app.post('/api/highscores', async (req, res) => {
   res.json({ ok: true, saved: true, scores: merged });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = http.createServer(app);
+const registry = createRoomRegistry();
+const wsServer = createRoomWebSocketServer({
+  server,
+  registry,
+  allowedOrigin: STACKLOGIC_ALLOWED_ORIGIN,
+  maxPayloadBytes: 4096,
+  createConnectionId: randomUUID,
+});
+
+let shutdownPromise = null;
+
+async function shutdown() {
+  if (shutdownPromise) return shutdownPromise;
+  shutdownPromise = closeServers({
+    closeWebSocket: () => wsServer.close(),
+    closeHttp: () => closeHttpServer(server),
+  });
+  return shutdownPromise;
+}
+
+process.on('SIGTERM', () => {
+  void settleShutdown({ shutdown });
+});
+
+process.on('SIGINT', () => {
+  void settleShutdown({ shutdown });
+});
+
+server.listen(PORT, HOST, () => {
   const ips = Object.values(os.networkInterfaces())
     .flat()
     .filter((x) => x && x.family === 'IPv4' && !x.internal)
     .map((x) => x.address);
   const ip = ips[0] || '127.0.0.1';
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
+  console.log(`Server running on http://${HOST}:${PORT}`);
   console.log(`LAN URL: http://${ip}:${PORT}`);
 });

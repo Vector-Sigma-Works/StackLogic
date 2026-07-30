@@ -1,7 +1,7 @@
 const ROOM_PROTOCOL_VERSION = 1;
 
 function createRoomProtocol({ registry, send }) {
-  if (typeof registry !== "object" || registry === null || typeof send !== "function" || typeof registry.createRoom !== "function" || typeof registry.joinRoom !== "function" || typeof registry.setPlayerReady !== "function") {
+  if (typeof registry !== "object" || registry === null || typeof send !== "function" || typeof registry.createRoom !== "function" || typeof registry.joinRoom !== "function" || typeof registry.setPlayerReady !== "function" || typeof registry.updatePlayerState !== "function" || typeof registry.requestRematch !== "function") {
     const err = new Error("invalid_configuration");
     err.code = "invalid_configuration";
     throw err;
@@ -172,6 +172,88 @@ function createRoomProtocol({ registry, send }) {
             sendError(connectionId, e.code, null, requestId);
           }
         }
+        break;
+      }
+
+      case "update_player_state": {
+        // Must be in a room with an authoritative session
+        if (!session || !session.room) {
+          sendError(connectionId, "not_in_room", null, requestId);
+          return;
+        }
+        try {
+          const result = registry.updatePlayerState({
+            code: selfRoomCode,
+            playerId: selfPlayerId,
+            matchId: msg.matchId,
+            updateSeq: msg.updateSeq,
+            state: msg.state,
+          });
+          // Find the opponent session (distinct connection, same room)
+          const senderName = result.players.find((p) => p.id === selfPlayerId)?.name ?? null;
+          const acceptedState = result.players.find((p) => p.id === selfPlayerId)?.gameState ?? null;
+          const acceptedUpdateSeq = result.players.find((p) => p.id === selfPlayerId)?.currentUpdateSeq ?? msg.updateSeq;
+          // Send player_state_accepted to sender first
+          send(connectionId, {
+            type: "player_state_accepted",
+            protocolVersion: ROOM_PROTOCOL_VERSION,
+            requestId: requestId,
+            matchId: msg.matchId,
+            updateSeq: acceptedUpdateSeq,
+          });
+          // Send opponent_state projection to the other connected distinct player in the room
+          for (const [opConnId, opSess] of sessions) {
+            if (!opSess || !opSess.room || opSess.room.code !== result.code) continue;
+            if (opConnId === connectionId) continue;
+            send(opConnId, {
+              type: "opponent_state",
+              protocolVersion: ROOM_PROTOCOL_VERSION,
+              matchId: msg.matchId,
+              opponent: {
+                name: senderName,
+                updateSeq: acceptedUpdateSeq,
+                board: acceptedState.board,
+                score: acceptedState.score,
+                lines: acceptedState.lines,
+                gameOver: acceptedState.gameOver,
+              },
+            });
+          }
+          if (result.match.result) {
+            for (const [connId, sess] of sessions) {
+              if (!sess || !sess.room || sess.room.code !== result.code) continue;
+              send(connId, {
+                type: "match_result",
+                protocolVersion: ROOM_PROTOCOL_VERSION,
+                matchId: result.match.id,
+                winnerId: result.match.result.winnerId,
+                loserId: result.match.result.loserId,
+              });
+            }
+          }
+        } catch (e) {
+          const extra = e.code === "stale_player_state" && Number.isSafeInteger(e.currentUpdateSeq)
+            ? { currentUpdateSeq: e.currentUpdateSeq }
+            : null;
+          sendError(connectionId, e.code, extra, requestId);
+        }
+        break;
+      }
+
+      case "request_rematch": {
+        if (!session || !session.room) { sendError(connectionId, "not_in_room", null, requestId); return; }
+        try {
+          const result = registry.requestRematch({ code: selfRoomCode, playerId: selfPlayerId, matchId: msg.matchId });
+          const current = result.match;
+          if (current.id === msg.matchId && current.rematchAccepted) {
+            for (const [connId, sess] of sessions) {
+              if (sess?.room?.code === result.code) send(connId, { type: "rematch_status", protocolVersion: ROOM_PROTOCOL_VERSION, matchId: msg.matchId, acceptedPlayerIds: current.rematchAccepted.slice() });
+            }
+          } else {
+            for (const [connId, sess] of sessions) if (sess?.room?.code === result.code) sessions.set(connId, { playerId: sess.playerId, room: result });
+            broadcastRoomState(result, connectionId, requestId);
+          }
+        } catch (e) { sendError(connectionId, e.code, null, requestId); }
         break;
       }
 

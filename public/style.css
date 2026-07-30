@@ -6,6 +6,21 @@
   --border: #283244;
 }
 
+.victory-fireworks {
+  margin: 0 0 10px;
+  color: #ffd43b;
+  font-size: 2rem;
+  letter-spacing: .4rem;
+  text-shadow: 0 0 12px #ff7b00, 0 0 24px #ff4d8d;
+  pointer-events: none;
+  animation: victory-spark 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes victory-spark {
+  from { transform: scale(.9); opacity: .72; }
+  to { transform: scale(1.08); opacity: 1; }
+}
+
 /* Theme: Default */
 [data-theme="Default"] {
   --bg: #0b0f14;
@@ -81,12 +96,57 @@ body {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 220px 300px 160px;
   gap: 16px;
   padding: 16px;
   max-width: 760px;
   margin: 0 auto;
   align-items: start;
+}
+
+.opponent-panel {
+  width: 160px;
+  font-size: 13px;
+  color: var(--fg);
+}
+
+.opp-heading {
+  margin: 0 0 8px;
+  font-size: 15px;
+  text-align: center;
+}
+
+.opponent-panel canvas#opponentGame {
+  display: block;
+  width: 120px;
+  height: 240px;
+  margin: 0 auto 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.opp-info {
+  margin-top: 8px;
+}
+
+.opp-info .row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid #1e2736;
+  font-size: 12px;
+}
+
+.opp-status {
+  margin-top: 8px;
+  min-height: 16px;
+  color: #ffb4a2;
+  font-size: 12px;
+  text-align: center;
+}
+
+.opponent-panel[hidden] {
+  display: none;
 }
 
 .stage {
@@ -383,6 +443,10 @@ canvas#game {
   canvas#game {
     margin: 0 auto;
   }
+  .opponent-panel {
+    grid-column: 1;
+    justify-self: center;
+  }
   .mobile-controls {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -489,10 +553,14 @@ canvas#game {
 
 /* Reduced motion guard */
 @media (prefers-reduced-motion: reduce) {
-  /* Disable any ambient animation classes or transitions */
+  /* Disable any ambient animation classes or transitions. */
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .victory-fireworks {
+    animation: none !important;
   }
 }

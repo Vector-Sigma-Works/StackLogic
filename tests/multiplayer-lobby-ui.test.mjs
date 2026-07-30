@@ -36,6 +36,7 @@ function runRoomClient(client, { search = '', modernClipboard = true } = {}) {
   let legacyCopyThrows = false;
   let selectedCopyNode = null;
   const fallbackNodes = new Set();
+  const windowListeners = new Map();
   let socket;
 
   const getElement = (id) => {
@@ -72,8 +73,20 @@ function runRoomClient(client, { search = '', modernClipboard = true } = {}) {
     href: `${origin}/play${search}`,
     search,
   };
+  const windowObject = {
+    location,
+    addEventListener(type, listener) {
+      const current = windowListeners.get(type) || [];
+      current.push(listener);
+      windowListeners.set(type, current);
+    },
+    dispatchEvent(event) {
+      for (const listener of windowListeners.get(event.type) || []) listener(event);
+      return true;
+    },
+  };
   const sandbox = {
-    window: { location },
+    window: windowObject,
     document: {
       body: {
         appendChild(node) {
@@ -152,7 +165,7 @@ describe('multiplayer lobby UI contract', () => {
     assert.match(html, /id="roomStatus"/);
     assert.match(html, /id="roomPlayers"/);
     assert.match(html, /id="roomReadyBtn"/);
-    assert.match(html, /<script type="module" src="room-client\.js\?v=0\.3\.0-beta\.1&rev=room-lobby-1"><\/script>/);
+    assert.match(html, /<script type="module" src="room-client\.js\?v=0\.3\.0-beta\.1&rev=opponent-state-1"><\/script>/);
 
     assert.match(client, /new WebSocket\(/);
     assert.match(client, /create_room/);
