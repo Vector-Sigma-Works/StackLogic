@@ -175,7 +175,7 @@ describe('multiplayer lobby UI contract', () => {
     assert.match(html, /id="roomStatus"/);
     assert.match(html, /id="roomPlayers"/);
     assert.match(html, /id="roomReadyBtn"[^>]*\bdisabled\b/);
-    assert.match(html, /<script type="module" src="room-client\.js\?v=0\.3\.0-beta\.1&rev=public-ws-2"><\/script>/);
+    assert.match(html, /<script type="module" src="room-client\.js\?v=0\.3\.0-beta\.1&rev=public-ws-3"><\/script>/);
 
     assert.match(client, /new WebSocket\(/);
     assert.match(client, /create_room/);
@@ -195,7 +195,7 @@ describe('multiplayer lobby UI contract', () => {
   it('uses the public production socket on GitHub Pages and gates lobby controls on connection state', async () => {
     const client = await read('public/room-client.js');
     const app = runRoomClient(client, {
-      host: 'vector-sigma-works.github.io',
+      host: 'alexgeslani.github.io',
       socketReadyState: 0,
     });
 

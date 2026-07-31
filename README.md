@@ -6,7 +6,7 @@
 
 StackLogic is a fast, browser-based falling-block arcade puzzler with responsive keyboard and touch controls, persistent local scores, and four visual themes that can be changed before play or while paused.
 
-**[Play StackLogic](https://vector-sigma-works.github.io/StackLogic/)** · **[Latest release](https://github.com/Vector-Sigma-Works/StackLogic/releases/tag/v0.3.0-beta.1)** · **[Changelog](CHANGELOG.md)** · **[Backlog](BACKLOG.md)**
+**[Play StackLogic](https://alexgeslani.github.io/StackLogic/)** · **[Latest release](https://github.com/AlexGeslani/StackLogic/releases/tag/v0.3.0-beta.1)** · **[Changelog](CHANGELOG.md)** · **[Backlog](BACKLOG.md)**
 
 ## Screenshots
 
