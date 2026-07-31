@@ -44,7 +44,7 @@ function nextClose(socket) {
   );
 }
 
-async function startHarness({ maxPayloadBytes = 4096, connectionIds = ["c1", "c2", "c3"] } = {}) {
+async function startHarness({ maxPayloadBytes = 4096, maxConnections = 200, connectionIds = ["c1", "c2", "c3"] } = {}) {
   const registry = createRoomRegistry({
     generateCode: () => "ABC234",
     createPlayerId: sequence(["p1", "p2"]),
@@ -58,6 +58,7 @@ async function startHarness({ maxPayloadBytes = 4096, connectionIds = ["c1", "c2
     registry,
     allowedOrigin: ALLOWED_ORIGIN,
     maxPayloadBytes,
+    maxConnections,
     createConnectionId: sequence(connectionIds),
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -158,6 +159,17 @@ describe("room WebSocket server", () => {
       assert.equal(await rejectedStatus(harness.url, { origin: `${ALLOWED_ORIGIN}.evil.example` }), 403);
     } finally {
       await harness.close();
+    }
+  });
+
+  it("rejects upgrades beyond the configured concurrent connection bound", async () => {
+    const harness = await startHarness({ maxConnections: 1 });
+    const first = connect(harness.url);
+    try {
+      assert.deepEqual(await first.connected, { type: "connected", protocolVersion: 1 });
+      assert.equal(await rejectedStatus(harness.url), 503);
+    } finally {
+      await harness.close([first.socket]);
     }
   });
 

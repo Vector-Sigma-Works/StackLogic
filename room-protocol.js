@@ -1,7 +1,7 @@
 const ROOM_PROTOCOL_VERSION = 1;
 
 function createRoomProtocol({ registry, send }) {
-  if (typeof registry !== "object" || registry === null || typeof send !== "function" || typeof registry.createRoom !== "function" || typeof registry.joinRoom !== "function" || typeof registry.setPlayerReady !== "function" || typeof registry.updatePlayerState !== "function" || typeof registry.requestRematch !== "function") {
+  if (typeof registry !== "object" || registry === null || typeof send !== "function" || typeof registry.createRoom !== "function" || typeof registry.deleteRoom !== "function" || typeof registry.joinRoom !== "function" || typeof registry.setPlayerReady !== "function" || typeof registry.updatePlayerState !== "function" || typeof registry.requestRematch !== "function") {
     const err = new Error("invalid_configuration");
     err.code = "invalid_configuration";
     throw err;
@@ -28,7 +28,20 @@ function createRoomProtocol({ registry, send }) {
     if (!sessions.has(connectionId)) {
       return;
     }
+    const session = sessions.get(connectionId);
     sessions.delete(connectionId);
+    if (!session?.room?.code) return;
+
+    registry.deleteRoom({ code: session.room.code });
+    for (const [otherConnectionId, otherSession] of sessions) {
+      if (otherSession?.room?.code !== session.room.code) continue;
+      sessions.set(otherConnectionId, null);
+      send(otherConnectionId, {
+        type: "room_closed",
+        protocolVersion: ROOM_PROTOCOL_VERSION,
+        code: "participant_disconnected",
+      });
+    }
   }
 
   // Validate requestId: if present in message (not undefined), must be a bounded ASCII token

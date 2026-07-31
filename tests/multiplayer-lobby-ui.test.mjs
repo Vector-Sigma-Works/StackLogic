@@ -12,7 +12,12 @@ function createElement(id = '') {
   return {
     id,
     value: '',
-    textContent: '',
+    _textContent: '',
+    get textContent() { return this._textContent; },
+    set textContent(value) {
+      this._textContent = value;
+      if (value === '') this.children.length = 0;
+    },
     disabled: id === 'copyCodeBtn' || id === 'copyInviteLinkBtn',
     children: [],
     addEventListener(type, listener) {
@@ -169,8 +174,8 @@ describe('multiplayer lobby UI contract', () => {
     assert.match(html, /id="roomCode"/);
     assert.match(html, /id="roomStatus"/);
     assert.match(html, /id="roomPlayers"/);
-    assert.match(html, /id="roomReadyBtn"/);
-    assert.match(html, /<script type="module" src="room-client\.js\?v=0\.3\.0-beta\.1&rev=public-ws-1"><\/script>/);
+    assert.match(html, /id="roomReadyBtn"[^>]*\bdisabled\b/);
+    assert.match(html, /<script type="module" src="room-client\.js\?v=0\.3\.0-beta\.1&rev=public-ws-2"><\/script>/);
 
     assert.match(client, /new WebSocket\(/);
     assert.match(client, /create_room/);
@@ -197,15 +202,28 @@ describe('multiplayer lobby UI contract', () => {
     assert.equal(app.socket.url, 'wss://stacklogic.alexgeslani.com/ws');
     assert.equal(app.getElement('createMatchBtn').disabled, true);
     assert.equal(app.getElement('joinMatchBtn').disabled, true);
+    assert.equal(app.getElement('roomReadyBtn').disabled, true);
     assert.match(app.getElement('roomStatus').textContent, /connect/i);
 
     await app.socket.emit('open');
     assert.equal(app.getElement('createMatchBtn').disabled, false);
     assert.equal(app.getElement('joinMatchBtn').disabled, false);
+    assert.equal(app.getElement('roomReadyBtn').disabled, true);
+
+    await app.socket.emit('message', { data: JSON.stringify({
+      type: 'room_state',
+      room: { code: 'ABC234', seq: 1, players: [{ id: 'p1', name: 'Alpha', ready: false }] },
+      self: { playerId: 'p1' },
+    }) });
+    assert.equal(app.getElement('roomReadyBtn').disabled, false);
 
     await app.socket.emit('close');
     assert.equal(app.getElement('createMatchBtn').disabled, true);
     assert.equal(app.getElement('joinMatchBtn').disabled, true);
+    assert.equal(app.getElement('roomReadyBtn').disabled, true);
+    assert.equal(app.getElement('copyCodeBtn').disabled, true);
+    assert.equal(app.getElement('copyInviteLinkBtn').disabled, true);
+    assert.equal(app.getElement('roomPlayers').children.length, 0);
     assert.equal(app.getElement('roomStatus').textContent, 'Disconnected.');
   });
 

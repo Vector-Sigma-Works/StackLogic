@@ -622,7 +622,7 @@ describe('Pass 03 live opponent state', () => {
     }
     assert.match(indexHtml, /style\.css\?v=0\.3\.0-beta\.1&rev=opponent-state-1/);
     assert.match(indexHtml, /game\.js\?v=0\.3\.0-beta\.1&rev=opponent-state-1/);
-    assert.match(indexHtml, /room-client\.js\?v=0\.3\.0-beta\.1&rev=public-ws-1/);
+    assert.match(indexHtml, /room-client\.js\?v=0\.3\.0-beta\.1&rev=public-ws-2/);
     assert.match(style, /\.opponent-panel\s*\{/);
     assert.match(style, /grid-template-columns:\s*220px\s+300px\s+160px/);
     assert.match(style, /@media\s*\(max-width:\s*760px\)[\s\S]*\.opponent-panel/);

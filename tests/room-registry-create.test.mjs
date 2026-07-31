@@ -42,6 +42,27 @@ describe("room registry creation authority", () => {
     assert.equal(registry.createRoom({ name: "Two" }).room.seq, 1);
   });
 
+  it("bounds room allocation and releases capacity only through explicit deletion", () => {
+    const codes = sequence(["AAA222", "BBB333"]);
+    const ids = sequence(["p1", "p2"]);
+    const registry = createRoomRegistry({ generateCode: codes, createPlayerId: ids, maxRooms: 1 });
+
+    registry.createRoom({ name: "One" });
+    expectCode("room_capacity_reached", () => registry.createRoom({ name: "Two" }));
+    assert.equal(registry.deleteRoom({ code: "AAA222" }), true);
+    assert.equal(registry.getRoom("AAA222"), null);
+    assert.equal(registry.deleteRoom({ code: "AAA222" }), false);
+    assert.equal(registry.createRoom({ name: "Two" }).room.code, "BBB333");
+  });
+
+  it("accepts only bounded integer room capacity", () => {
+    assert.ok(createRoomRegistry({ maxRooms: 1 }));
+    assert.ok(createRoomRegistry({ maxRooms: 10_000 }));
+    for (const value of [0, 10_001, 1.5, "256", null]) {
+      expectCode("invalid_configuration", () => createRoomRegistry({ maxRooms: value }));
+    }
+  });
+
   it("rejects lowercase generated codes instead of silently normalizing them", () => {
     const registry = createRoomRegistry({ generateCode: () => "abc234", createPlayerId: () => "p1" });
     expectCode("invalid_room_code", () => registry.createRoom({ name: "Player" }));
