@@ -8,9 +8,11 @@ function createRoomWebSocketServer({ server, registry, allowedOrigin, maxPayload
   if (typeof registry !== "object" || registry === null) {
     throw new Error("invalid_configuration");
   }
-  if (typeof allowedOrigin !== "string") {
+  const allowedOrigins = Array.isArray(allowedOrigin) ? allowedOrigin : [allowedOrigin];
+  if (!allowedOrigins.length || allowedOrigins.some((origin) => typeof origin !== "string" || !origin)) {
     throw new Error("invalid_configuration");
   }
+  const originAllowlist = new Set(allowedOrigins);
   if (typeof maxPayloadBytes !== "number" || !Number.isInteger(maxPayloadBytes) || maxPayloadBytes < 1) {
     throw new Error("invalid_configuration");
   }
@@ -57,7 +59,7 @@ function createRoomWebSocketServer({ server, registry, allowedOrigin, maxPayload
 
     // Origin validation
     const origin = request.headers.origin;
-    if (origin !== allowedOrigin) {
+    if (!originAllowlist.has(origin)) {
       socket.end(
         "HTTP/1.1 403 Forbidden\r\nContent-Length: 9\r\nConnection: close\r\n\r\nForbidden"
       );

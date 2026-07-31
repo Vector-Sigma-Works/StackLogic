@@ -1,5 +1,8 @@
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+const sameOriginWsUrl = `${wsProtocol}//${window.location.host}/ws`;
+const wsUrl = window.location.hostname === 'vector-sigma-works.github.io'
+  ? 'wss://stacklogic.alexgeslani.com/ws'
+  : sameOriginWsUrl;
 const ws = new WebSocket(wsUrl);
 
 let currentSeq = null;
@@ -44,6 +47,12 @@ async function copyText(text) {
 }
 
 function setStatus(msg) { els.status.textContent = msg; }
+function setLobbyAvailable(available) {
+  els.createBtn.disabled = !available;
+  els.joinBtn.disabled = !available;
+}
+setLobbyAvailable(ws.readyState === WebSocket.OPEN);
+if (ws.readyState !== WebSocket.OPEN) setStatus('Connecting to lobby…');
 function updatePlayerList(room) {
   if (!room || !room.players) { els.players.textContent = ''; return; }
   els.players.textContent = '';
@@ -172,7 +181,7 @@ if (rawPrefill) {
   }
 }
 if (prefilledRoom) els.roomCode.value = prefilledRoom;
-ws.addEventListener('open', () => setStatus('Connected to lobby.'));
+ws.addEventListener('open', () => { setLobbyAvailable(true); setStatus('Connected to lobby.'); });
 ws.addEventListener('message', (e) => {
   let data;
   try { data = JSON.parse(e.data); } catch { return; }
@@ -229,8 +238,8 @@ ws.addEventListener('message', (e) => {
     window.dispatchEvent(new CustomEvent('stacklogic:rematch-status', { detail: { matchId: data.matchId, acceptedPlayerIds: data.acceptedPlayerIds.slice() } }));
   }
 });
-ws.addEventListener('error', () => setStatus('Connection error.'));
-ws.addEventListener('close', () => { invalidateActiveMatch(); setStatus('Disconnected.'); });
+ws.addEventListener('error', () => { setLobbyAvailable(false); setStatus('Connection error.'); });
+ws.addEventListener('close', () => { invalidateActiveMatch(); setLobbyAvailable(false); setStatus('Disconnected.'); });
 els.createBtn.addEventListener('click', () => { const name = els.roomName.value.trim(); if (name) sendMsg('create_room', { name }); });
 els.joinBtn.addEventListener('click', () => { const name = els.roomName.value.trim(); const rawCode = els.roomCode.value.trim(); const code = normalizeRoomCode(rawCode); if (name && code) sendMsg('join_room', { code, name }); });
 els.roomCode.addEventListener('paste', async (e) => {

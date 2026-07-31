@@ -27,7 +27,7 @@ function createElement(id = '') {
   };
 }
 
-function runRoomClient(client, { search = '', modernClipboard = true } = {}) {
+function runRoomClient(client, { search = '', modernClipboard = true, host = 'game.example', socketReadyState = 1 } = {}) {
   const elements = new Map();
   const messages = [];
   const copied = [];
@@ -48,7 +48,7 @@ function runRoomClient(client, { search = '', modernClipboard = true } = {}) {
     constructor(url) {
       this.url = url;
       this.listeners = new Map();
-      this.readyState = FakeWebSocket.OPEN;
+      this.readyState = socketReadyState;
       socket = this;
     }
     addEventListener(type, listener) {
@@ -58,16 +58,21 @@ function runRoomClient(client, { search = '', modernClipboard = true } = {}) {
     }
     send(payload) { messages.push(JSON.parse(payload)); }
     async emit(type, event = {}) {
+      if (type === 'open') this.readyState = FakeWebSocket.OPEN;
+      if (type === 'close') this.readyState = FakeWebSocket.CLOSED;
       for (const listener of this.listeners.get(type) || []) await listener(event);
     }
   }
+  FakeWebSocket.CONNECTING = 0;
   FakeWebSocket.OPEN = 1;
+  FakeWebSocket.CLOSED = 3;
 
   const protocol = modernClipboard ? 'https:' : 'http:';
-  const origin = `${protocol}//game.example`;
+  const origin = `${protocol}//${host}`;
   const location = {
     protocol,
-    host: 'game.example',
+    host,
+    hostname: host,
     origin,
     pathname: '/play',
     href: `${origin}/play${search}`,
@@ -165,7 +170,7 @@ describe('multiplayer lobby UI contract', () => {
     assert.match(html, /id="roomStatus"/);
     assert.match(html, /id="roomPlayers"/);
     assert.match(html, /id="roomReadyBtn"/);
-    assert.match(html, /<script type="module" src="room-client\.js\?v=0\.3\.0-beta\.1&rev=opponent-state-1"><\/script>/);
+    assert.match(html, /<script type="module" src="room-client\.js\?v=0\.3\.0-beta\.1&rev=public-ws-1"><\/script>/);
 
     assert.match(client, /new WebSocket\(/);
     assert.match(client, /create_room/);
@@ -180,6 +185,28 @@ describe('multiplayer lobby UI contract', () => {
     assert.match(client, /updateReadyBtn\(\);\s*$/m);
     assert.match(client, /crypto\.randomUUID\(\)/);
     assert.doesNotMatch(client, /Math\.random/);
+  });
+
+  it('uses the public production socket on GitHub Pages and gates lobby controls on connection state', async () => {
+    const client = await read('public/room-client.js');
+    const app = runRoomClient(client, {
+      host: 'vector-sigma-works.github.io',
+      socketReadyState: 0,
+    });
+
+    assert.equal(app.socket.url, 'wss://stacklogic.alexgeslani.com/ws');
+    assert.equal(app.getElement('createMatchBtn').disabled, true);
+    assert.equal(app.getElement('joinMatchBtn').disabled, true);
+    assert.match(app.getElement('roomStatus').textContent, /connect/i);
+
+    await app.socket.emit('open');
+    assert.equal(app.getElement('createMatchBtn').disabled, false);
+    assert.equal(app.getElement('joinMatchBtn').disabled, false);
+
+    await app.socket.emit('close');
+    assert.equal(app.getElement('createMatchBtn').disabled, true);
+    assert.equal(app.getElement('joinMatchBtn').disabled, true);
+    assert.equal(app.getElement('roomStatus').textContent, 'Disconnected.');
   });
 
   it('normalizes join input, pasted invite URLs, and direct room prefills', async () => {

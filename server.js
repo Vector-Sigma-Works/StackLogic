@@ -14,9 +14,19 @@ const PORT = PORT_RAW !== undefined ? Number(PORT_RAW) : 3000;
 if (PORT_RAW !== undefined && (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535)) {
   throw new Error('invalid_port');
 }
-const STACKLOGIC_ALLOWED_ORIGIN = process.env.STACKLOGIC_ALLOWED_ORIGIN;
-if (!STACKLOGIC_ALLOWED_ORIGIN || typeof STACKLOGIC_ALLOWED_ORIGIN !== 'string') {
+const STACKLOGIC_ALLOWED_ORIGINS = process.env.STACKLOGIC_ALLOWED_ORIGIN
+  ?.split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+if (!STACKLOGIC_ALLOWED_ORIGINS?.length) {
   throw new Error('missing_allowed_origin');
+}
+for (const origin of STACKLOGIC_ALLOWED_ORIGINS) {
+  let parsed;
+  try { parsed = new URL(origin); } catch { throw new Error('invalid_allowed_origin'); }
+  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.origin !== origin) {
+    throw new Error('invalid_allowed_origin');
+  }
 }
 
 const app = express();
@@ -102,7 +112,7 @@ const registry = createRoomRegistry();
 const wsServer = createRoomWebSocketServer({
   server,
   registry,
-  allowedOrigin: STACKLOGIC_ALLOWED_ORIGIN,
+  allowedOrigin: STACKLOGIC_ALLOWED_ORIGINS,
   maxPayloadBytes: 4096,
   createConnectionId: randomUUID,
 });

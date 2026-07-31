@@ -31,7 +31,7 @@ describe('release metadata', () => {
       assert.match(indexHtml, new RegExp(`${asset.replace('.', '\\.') }\\?v=${RELEASE.replaceAll('.', '\\.').replace('-', '\\-')}`));
     }
 
-    assert.match(indexHtml, /room-client\.js\?v=0\.3\.0-beta\.1&rev=opponent-state-1/);
+    assert.match(indexHtml, /room-client\.js\?v=0\.3\.0-beta\.1&rev=public-ws-1/);
 
     assert.match(gameJs, /theme-rain-bootstrap\.js\?v=0\.3\.0-beta\.1/);
     assert.match(bootstrapJs, /theme-rain-adapter\.js\?v=0\.3\.0-beta\.1/);
