@@ -174,13 +174,24 @@ describe("room protocol", () => {
     assert.deepEqual(sent.map((entry) => entry.message.code), Array(5).fill("invalid_request_id"));
   });
 
-  it("disconnects transport sessions without deleting authoritative rooms", () => {
-    const { protocol, registry } = harness();
+  it("deletes the authoritative room and resets remaining sessions when a participant disconnects", () => {
+    const { protocol, sent, registry } = harness();
     protocol.connect("c1");
+    protocol.connect("c2");
     protocol.receive("c1", request("create_room", "r1", { name: "Alpha" }));
+    protocol.receive("c2", request("join_room", "r2", { code: "ABC234", name: "Beta" }));
+    sent.length = 0;
+
     protocol.disconnect("c1");
-    assert.equal(registry.getRoom("ABC234").players[0].name, "Alpha");
+
+    assert.equal(registry.getRoom("ABC234"), null);
+    assert.deepEqual(sent, [{
+      connectionId: "c2",
+      message: { type: "room_closed", protocolVersion: 1, code: "participant_disconnected" },
+    }]);
     assert.doesNotThrow(() => protocol.connect("c1"));
+    protocol.receive("c2", request("set_ready", "r3", { ready: true, expectedSeq: 2 }));
+    assert.equal(sent.at(-1).message.code, "not_in_room");
   });
 
   it("rejects malformed protocol dependencies at construction", () => {

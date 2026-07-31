@@ -5,6 +5,7 @@ function createRoomRegistry({
   generateCode = generateRoomCode,
   createPlayerId = randomUUID,
   maxCodeAttempts: attemptLimit = 32,
+  maxRooms = 256,
   createMatchId = () => randomUUID(),
   createMatchSeed = () => randomBytes(4).readUInt32BE(0),
 } = {}) {
@@ -14,6 +15,12 @@ function createRoomRegistry({
     attemptLimit < 1 ||
     attemptLimit > 128
   ) {
+    const err = new Error("invalid_configuration");
+    err.code = "invalid_configuration";
+    throw err;
+  }
+
+  if (!Number.isInteger(maxRooms) || maxRooms < 1 || maxRooms > 10_000) {
     const err = new Error("invalid_configuration");
     err.code = "invalid_configuration";
     throw err;
@@ -45,6 +52,11 @@ function createRoomRegistry({
   return {
     createRoom({ name }) {
       const normalizedName = normalizePlayerName(name);
+      if (rooms.size >= maxRooms) {
+        const err = new Error("room_capacity_reached");
+        err.code = "room_capacity_reached";
+        throw err;
+      }
       let lastError = null;
       for (let i = 0; i < attemptLimit; i++) {
         const code = generateCode();
@@ -87,6 +99,19 @@ function createRoomRegistry({
       const err = new Error("room_code_exhausted");
       err.code = "room_code_exhausted";
       throw err;
+    },
+
+    deleteRoom({ code }) {
+      if (typeof code !== "string") {
+        const err = new Error("invalid_room_code");
+        err.code = "invalid_room_code";
+        throw err;
+      }
+      const normalizedCode = code.trim().toUpperCase();
+      validateRoomCode(normalizedCode);
+      const removed = rooms.delete(normalizedCode);
+      issuedMatchIdsByRoom.delete(normalizedCode);
+      return removed;
     },
 
     getRoom(code) {

@@ -29,6 +29,19 @@ for (const origin of STACKLOGIC_ALLOWED_ORIGINS) {
   }
 }
 
+function boundedIntegerEnv(name, fallback, max) {
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1 || value > max) {
+    throw new Error(`invalid_${name.toLowerCase()}`);
+  }
+  return value;
+}
+
+const STACKLOGIC_MAX_ROOMS = boundedIntegerEnv('STACKLOGIC_MAX_ROOMS', 256, 10_000);
+const STACKLOGIC_MAX_CONNECTIONS = boundedIntegerEnv('STACKLOGIC_MAX_CONNECTIONS', 200, 10_000);
+
 const app = express();
 const DATA_DIR = path.resolve('data');
 const HIGHSCORES_PATH = path.join(DATA_DIR, 'highscores.json');
@@ -108,12 +121,13 @@ app.post('/api/highscores', async (req, res) => {
 });
 
 const server = http.createServer(app);
-const registry = createRoomRegistry();
+const registry = createRoomRegistry({ maxRooms: STACKLOGIC_MAX_ROOMS });
 const wsServer = createRoomWebSocketServer({
   server,
   registry,
   allowedOrigin: STACKLOGIC_ALLOWED_ORIGINS,
   maxPayloadBytes: 4096,
+  maxConnections: STACKLOGIC_MAX_CONNECTIONS,
   createConnectionId: randomUUID,
 });
 

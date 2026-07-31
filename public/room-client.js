@@ -52,6 +52,7 @@ function setLobbyAvailable(available) {
   els.joinBtn.disabled = !available;
 }
 setLobbyAvailable(ws.readyState === WebSocket.OPEN);
+updateReadyBtn();
 if (ws.readyState !== WebSocket.OPEN) setStatus('Connecting to lobby…');
 function updatePlayerList(room) {
   if (!room || !room.players) { els.players.textContent = ''; return; }
@@ -168,6 +169,20 @@ function invalidateActiveMatch() {
   opponentUpdateSeq = 0;
 }
 
+function clearRoomState() {
+  currentSeq = null;
+  selfPlayerId = null;
+  roomState = null;
+  finishedMatchId = null;
+  dispatchedMatchIds = new Set();
+  invalidateActiveMatch();
+  els.players.textContent = '';
+  els.readyBtn.disabled = true;
+  els.readyBtn.textContent = 'Ready';
+  els.copyCodeBtn.disabled = true;
+  els.copyInviteLinkBtn.disabled = true;
+}
+
 const params = new URLSearchParams(window.location.search);
 const rawPrefill = params.get('room');
 let prefilledRoom = '';
@@ -193,6 +208,9 @@ ws.addEventListener('message', (e) => {
     els.copyCodeBtn.disabled = false;
     els.copyInviteLinkBtn.disabled = false;
     handleMatchSnapshot(data.room.match, currentSeq);
+  } else if (data.type === 'room_closed') {
+    clearRoomState();
+    setStatus('Room closed because a participant disconnected.');
   } else if (data.type === 'error') setStatus(`Error: ${data.code}`);
   else if (data.type === 'opponent_state') {
     const msgKeys = Object.keys(data);
@@ -239,7 +257,7 @@ ws.addEventListener('message', (e) => {
   }
 });
 ws.addEventListener('error', () => { setLobbyAvailable(false); setStatus('Connection error.'); });
-ws.addEventListener('close', () => { invalidateActiveMatch(); setLobbyAvailable(false); setStatus('Disconnected.'); });
+ws.addEventListener('close', () => { clearRoomState(); setLobbyAvailable(false); setStatus('Disconnected.'); });
 els.createBtn.addEventListener('click', () => { const name = els.roomName.value.trim(); if (name) sendMsg('create_room', { name }); });
 els.joinBtn.addEventListener('click', () => { const name = els.roomName.value.trim(); const rawCode = els.roomCode.value.trim(); const code = normalizeRoomCode(rawCode); if (name && code) sendMsg('join_room', { code, name }); });
 els.roomCode.addEventListener('paste', async (e) => {

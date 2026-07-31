@@ -1,7 +1,7 @@
 import { WebSocketServer } from "ws";
 import { createRoomProtocol } from "./room-protocol.js";
 
-function createRoomWebSocketServer({ server, registry, allowedOrigin, maxPayloadBytes = 4096, createConnectionId }) {
+function createRoomWebSocketServer({ server, registry, allowedOrigin, maxPayloadBytes = 4096, maxConnections = 200, createConnectionId }) {
   if (typeof server !== "object" || server === null || typeof server.on !== "function") {
     throw new Error("invalid_configuration");
   }
@@ -14,6 +14,9 @@ function createRoomWebSocketServer({ server, registry, allowedOrigin, maxPayload
   }
   const originAllowlist = new Set(allowedOrigins);
   if (typeof maxPayloadBytes !== "number" || !Number.isInteger(maxPayloadBytes) || maxPayloadBytes < 1) {
+    throw new Error("invalid_configuration");
+  }
+  if (!Number.isInteger(maxConnections) || maxConnections < 1 || maxConnections > 10_000) {
     throw new Error("invalid_configuration");
   }
   if (typeof createConnectionId !== "function") {
@@ -62,6 +65,13 @@ function createRoomWebSocketServer({ server, registry, allowedOrigin, maxPayload
     if (!originAllowlist.has(origin)) {
       socket.end(
         "HTTP/1.1 403 Forbidden\r\nContent-Length: 9\r\nConnection: close\r\n\r\nForbidden"
+      );
+      return;
+    }
+
+    if (clients.size >= maxConnections) {
+      socket.end(
+        "HTTP/1.1 503 Service Unavailable\r\nContent-Length: 19\r\nConnection: close\r\n\r\nService Unavailable"
       );
       return;
     }
