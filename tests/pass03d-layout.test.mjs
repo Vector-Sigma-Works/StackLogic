@@ -30,7 +30,7 @@ test('ships an accessible responsive opponent panel with exact cache revisions',
 
   assert.match(html, /style\.css\?v=0\.3\.0-beta\.1&rev=opponent-state-1/);
   assert.match(html, /game\.js\?v=0\.3\.0-beta\.1&rev=opponent-state-1/);
-  assert.match(html, /room-client\.js\?v=0\.3\.0-beta\.1&rev=opponent-state-1/);
+  assert.match(html, /room-client\.js\?v=0\.3\.0-beta\.1&rev=public-ws-1/);
 
   assert.match(style, /\.wrap\s*\{[\s\S]*?grid-template-columns:\s*220px\s+300px\s+160px/);
   assert.match(style, /\.opponent-panel\s*\{[\s\S]*?width:\s*160px/);

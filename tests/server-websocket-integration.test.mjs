@@ -5,6 +5,7 @@ import net from "node:net";
 import WebSocket from "ws";
 
 const ORIGIN = "https://stacklogic-dev.game.lan";
+const PAGES_ORIGIN = "https://vector-sigma-works.github.io";
 
 async function reservePort() {
   const probe = net.createServer();
@@ -69,7 +70,7 @@ describe("StackLogic server WebSocket integration", () => {
         ...process.env,
         HOST: "127.0.0.1",
         PORT: String(port),
-        STACKLOGIC_ALLOWED_ORIGIN: ORIGIN,
+        STACKLOGIC_ALLOWED_ORIGIN: `${ORIGIN},${PAGES_ORIGIN}`,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -77,6 +78,7 @@ describe("StackLogic server WebSocket integration", () => {
     child.stdout.on("data", (chunk) => { output = (output + chunk).slice(-8_192); });
     child.stderr.on("data", (chunk) => { output = (output + chunk).slice(-8_192); });
     let socket;
+    let pagesSocket;
 
     try {
       assert.deepEqual(await waitForHealth(port, child), { ok: true });
@@ -92,10 +94,14 @@ describe("StackLogic server WebSocket integration", () => {
       assert.match(message.room.code, /^[A-Z2-9]{6}$/);
       assert.equal(message.self.playerId.length > 0, true);
 
+      pagesSocket = new WebSocket(`ws://127.0.0.1:${port}/ws`, { headers: { Origin: PAGES_ORIGIN } });
+      assert.deepEqual(await waitForMessage(pagesSocket), { type: "connected", protocolVersion: 1 });
+
       child.kill("SIGTERM");
       assert.equal(await waitForExit(child), 0, output);
     } finally {
       socket?.terminate();
+      pagesSocket?.terminate();
       if (child.exitCode === null) {
         child.kill("SIGKILL");
         await waitForExit(child).catch(() => {});
