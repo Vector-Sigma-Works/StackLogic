@@ -5,7 +5,7 @@ import net from "node:net";
 import WebSocket from "ws";
 
 const ORIGIN = "https://stacklogic-dev.game.lan";
-const PAGES_ORIGIN = "https://vector-sigma-works.github.io";
+const PAGES_ORIGIN = "https://alexgeslani.github.io";
 
 async function reservePort() {
   const probe = net.createServer();

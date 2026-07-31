@@ -1,6 +1,6 @@
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const sameOriginWsUrl = `${wsProtocol}//${window.location.host}/ws`;
-const wsUrl = window.location.hostname === 'vector-sigma-works.github.io'
+const wsUrl = window.location.hostname === 'alexgeslani.github.io'
   ? 'wss://stacklogic.alexgeslani.com/ws'
   : sameOriginWsUrl;
 const ws = new WebSocket(wsUrl);
