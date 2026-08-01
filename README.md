@@ -4,15 +4,19 @@
 
 **Version:** v0.3.0-beta.1
 
-StackLogic is a fast, browser-based falling-block arcade puzzler with responsive keyboard and touch controls, persistent local scores, and four visual themes that can be changed before play or while paused.
+StackLogic is an experimental browser-based falling-block arcade puzzler with solo play, real-time two-player matches, live opponent state, responsive keyboard and touch controls, persistent local scores, and four visual themes.
 
 **[Play StackLogic](https://alexgeslani.github.io/StackLogic/)** · **[Latest release](https://github.com/AlexGeslani/StackLogic/releases/tag/v0.3.0-beta.1)** · **[Changelog](CHANGELOG.md)** · **[Backlog](BACKLOG.md)**
 
 ## Screenshots
 
-### Matrix gameplay
+### Create or join a multiplayer room
 
-![StackLogic Matrix gameplay with solid-green pieces and digital rain](docs/screenshots/matrix-gameplay.png)
+![StackLogic multiplayer lobby with player name, room code, Create Match, and Join Match controls](docs/screenshots/multiplayer-join-room.png)
+
+| Live two-player match | Matrix gameplay |
+| --- | --- |
+| ![StackLogic live multiplayer match with the local board and Beta opponent board, score, lines, and playing state](docs/screenshots/multiplayer-live-match.png) | ![StackLogic Matrix gameplay with solid-green pieces and digital rain](docs/screenshots/matrix-gameplay.png) |
 
 | Pause-time theme selection | iPad-class touch controls |
 | --- | --- |
@@ -21,12 +25,13 @@ StackLogic is a fast, browser-based falling-block arcade puzzler with responsive
 ## Highlights
 
 - **Four persistent themes:** Default, Matrix, CandyPop, and Dark.
+- **Real-time multiplayer:** create or join a private room, ready both players, start from one authoritative match identity and seed, follow the opponent's board/score/lines, and request a rematch after the result.
 - **Live theme switching:** choose a theme on the title screen or change it while paused without restarting the game.
 - **Responsive input:** keyboard controls on desktop and on-screen controls for touch and coarse-pointer devices, including wide iPad-class layouts.
 - **Accessible motion and navigation:** Matrix rain follows live reduced-motion preferences; theme controls support Arrow keys and Home/End with roving focus.
 - **Deterministic game core:** level progression, competitive scoring, and seeded seven-bag piece order are reproducible and independently tested.
 - **Local play data:** optional next-piece preview and local high scores work without an account.
-- **Static deployment:** the production game runs on GitHub Pages; the Express server is provided for local development.
+- **Public browser deployment:** GitHub Pages serves the game client; a bounded WebSocket service provides authoritative multiplayer rooms and match state. Express remains available for local development.
 
 ## Controls
 
@@ -57,11 +62,12 @@ Open http://localhost:3000.
 npm test
 ```
 
-The test suite covers deterministic progression, scoring, seeded piece sequences, release metadata, theme rendering and accessibility, Matrix rain lifecycle and cleanup, responsive controls, and GitHub Pages workflow boundaries.
+The test suite covers deterministic progression, scoring, seeded piece sequences, multiplayer room/protocol lifecycle, authoritative match starts, opponent state, results and rematches, release metadata, theme rendering and accessibility, Matrix rain lifecycle and cleanup, responsive controls, and GitHub Pages workflow boundaries.
 
 ## Project layout
 
-- `public/` — browser game, themes, styles, and static assets
+- `public/` — browser game, multiplayer client, themes, styles, and static assets
+- `room-*.js` — authoritative room codes, protocol validation, registry state, and WebSocket lifecycle
 - `tests/` — deterministic Node test suite
 - `docs/screenshots/` — current product screenshots used by this README
 - `.github/workflows/pages.yml` — pull-request tests and GitHub Pages deployment
@@ -72,3 +78,9 @@ The test suite covers deterministic progression, scoring, seeded piece sequences
 ## Release status
 
 StackLogic is currently in the **v0.x beta** line. Gameplay, UI, and local data formats may change before v1.0. Patch prereleases focus on fixes and refinements; minor prereleases may introduce larger gameplay or presentation changes.
+
+## Experiment and trademark notice
+
+StackLogic is an independent, non-commercial software experiment exploring deterministic browser game logic, real-time multiplayer state, and UI testing. It is not an official Tetris product and is not affiliated with or endorsed by Tetris Holding or The Tetris Company.
+
+Tetris® and associated trademarks and trade dress are owned by Tetris Holding and licensed to The Tetris Company. See the [official Tetris terms](https://tetris.com/terms-conditions).
